@@ -1,0 +1,6 @@
+[submodule "third_party/quickjs-ng"]
+	path = third_party/quickjs-ng
+	url = https://github.com/quickjs-ng/quickjs.git
+[submodule "third_party/reaper-sdk"]
+	path = third_party/reaper-sdk
+	url = https://github.com/justinfrankel/reaper-sdk.git

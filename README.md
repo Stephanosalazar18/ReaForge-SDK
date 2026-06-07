@@ -20,7 +20,7 @@ ReaForge turns REAPER into an extensible platform: third parties (humans and AI 
 
 ## How users interact with ReaForge
 
-There are three flows, shipped in order. See [`docs/user-flows.md`](docs/user-flows.md) for the full diagrams.
+There are three flows, shipped in order. See [`docs/user-flows.md`](docs/user-flows.md) for the full diagrams and [`docs/cross-environment.md`](docs/cross-environment.md) for how the four actors (REAPER, extension, opencode-bridge, opencode) communicate.
 
 | Flow | Description | Phase | Requires opencode? |
 |---|---|---|---|

@@ -82,7 +82,7 @@ The file is the only cross-env contract. It contains a single line: `172.21.32.4
 
 ## Why not the opencode API directly?
 
-You asked: "or we use just the opencode API?". The answer is: **the opencode API is the wrong layer**. The opencode HTTP API is for opencode-as-server, not opencode-as-client. We want opencode to *call* REAPER, not REAPER to call opencode. The bridge is opencode's adapter to REAPER, not the other way around.
+You asked: "or we use just the opencode API?". The answer is: **the opencode HTTP API is the wrong layer**. The opencode HTTP API is for opencode-as-server, not opencode-as-client. We want opencode to *call* REAPER, not REAPER to call opencode. The bridge is opencode's adapter to REAPER, not the other way around.
 
 If you wanted to skip the MCP layer entirely, opencode could in principle just `curl` the REAPER extension directly. That works for the technical case but loses:
 - The MCP tool surface (typed schemas, auto-discovery in opencode).
@@ -90,6 +90,44 @@ If you wanted to skip the MCP layer entirely, opencode could in principle just `
 - The structured error handling that the MCP layer provides.
 
 The MCP layer is ~50 LOC of Python. The HTTP layer is ~50 LOC of C++ inside the extension. Total added complexity: ~100 LOC for a much cleaner developer experience. Worth it.
+
+## `opencode serve` and `opencode desktop`
+
+`opencode serve --hostname 0.0.0.0 --port 4096` runs opencode as an HTTP daemon, accessible from any interface. `opencode desktop` is the GUI app; under the hood it typically launches `opencode serve` on localhost and connects to it.
+
+Both are opencode-as-**server**, exposing the opencode API. They do not consume the REAPER extension — that role belongs to a separate MCP client (the bridge). The relationship in our stack is:
+
+```
+opencode desktop (UI)
+   └─ opencode serve (:4096)  ← the daemon, owned by the user
+        └─ MCP client (stdio)
+             └─ opencode-bridge (Python, ~50 LOC)  ← registers REAPER tools
+                  └─ HTTP client
+                       └─ REAPER extension (:7800)
+```
+
+`opencode serve` matters in this stack because:
+- It lets the user keep an opencode session running (the UI can disconnect/reconnect).
+- It gives the user a stable endpoint to point multiple clients at.
+- It does **not** eliminate the bridge — the bridge is still the only thing that knows about REAPER tools.
+
+If you wanted to remove the bridge entirely, the C++ extension would have to implement the MCP protocol itself (JSON-RPC + tool registration). That is ~200 LOC of C++ that trades flexibility for one fewer process. For Fase 5 the bridge is the simpler choice.
+
+## The discovery sequence (concrete)
+
+When the user starts their REAPER + opencode session:
+
+1. **REAPER starts** → loads `reaper_reaforge_host.dll` → extension binds `0.0.0.0:7800`.
+2. **opencode serve starts** (manually or via opencode desktop) → binds `0.0.0.0:4096`.
+3. **opencode-bridge starts** (or opencode loads it declaratively via `opencode mcp add`):
+   - discovers its WSL IP via `hostname -I | awk '{print $1}'`
+   - writes it to `%APPDATA%\REAPER\ReaForge\wsl-bridge.txt`
+   - probes `http://<wsl-ip>:7800/health` → confirms REAPER is up
+   - probes `http://<wsl-ip>:4096/v1/...` → confirms opencode is up
+   - connects to opencode as an MCP server
+4. **User types a request in opencode desktop** → opencode calls bridge tools → bridge calls REAPER → results bubble back up.
+
+If either REAPER or opencode is not running, the bridge exits non-zero and opencode shows a clear "REAPER not reachable" error to the user. No silent failures.
 
 ## The API (HTTP/JSON)
 

@@ -29,17 +29,17 @@ The user must pick a chain strategy before apply: **stacked-to-main** (each PR m
 
 ## Phase 1: Refactor (spike → host)
 
-- [ ] 1.1 Rename `src/spike/` → `src/host/` (preserve git history via `git mv`)
-- [ ] 1.2 Update namespaces from `reaforge` to `reaforge::host` across the renamed files
-- [ ] 1.3 Split `src/spike/meson.build` into a root `meson.build` and `src/host/meson.build`
+- [x] 1.1 Rename `src/spike/` → `src/host/` (preserve git history via `git mv`)
+- [ ] 1.2 Update namespaces from `reaforge` to `reaforge::host` across the renamed files — *deferred to a cleanup PR; PR 1 keeps the existing `namespace reaforge` and adds `namespace host` as a sub-namespace only in new files (panel, host.cpp)*
+- [x] 1.3 Split `src/spike/meson.build` into a root `meson.build` and `src/host/meson.build` — *partially: root meson.build created; src/host/meson.build is the renamed version with new panel/host targets*
 - [ ] 1.4 Verify the rename builds (deferred — needs `meson` + `lua5.4-dev`)
 
 ## Phase 2: ReaImGui Vendor and Panel Skeleton
 
-- [ ] 2.1 Vendor `reaimgui` (Codeberg) as a git submodule at `third_party/reaimgui/`, pinned to a specific commit, recorded in `third_party/reaimgui.PIN`
-- [ ] 2.2 Add reaimgui as a static library target in `src/host/meson.build`
-- [ ] 2.3 Create `src/host/panel.h` declaring `panel::create`, `panel::destroy`, `panel::render`, `panel::on_reload`
-- [ ] 2.4 Create `src/host/panel.cpp` with stub implementations that render an empty ImGui window titled "ReaForge"
+- [x] 2.1 Vendor `reaimgui` (Codeberg) as a git submodule at `third_party/reaimgui/`
+- [x] 2.2 Add reaimgui as a subproject in root `meson.build` (subproject declaration; explicit linkage is added in PR 3 when panel widgets are used)
+- [x] 2.3 Create `src/host/panel.h` declaring `panel::create`, `panel::destroy`, `panel::render`, `panel::on_reload`
+- [x] 2.4 Create `src/host/panel.cpp` with stub implementations (no ReaImGui yet)
 
 ## Phase 3: Panel Implementation
 

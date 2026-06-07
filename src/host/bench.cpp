@@ -122,6 +122,8 @@ int run_bench_main(int argc, char** argv) {
 
 }
 
+}
+
 int main(int argc, char** argv) {
     return reaforge::run_bench_main(argc, argv);
 }

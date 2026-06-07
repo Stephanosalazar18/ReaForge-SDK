@@ -72,7 +72,9 @@ void register_quickjs_bridge(JSContext* ctx) {
         JS_NewCFunction(ctx, js_get_track_name, "get_track_name", 1));
     JS_SetPropertyStr(ctx, obj, "get_master_track_volume",
         JS_NewCFunction(ctx, js_get_master_track_volume, "get_master_track_volume", 0));
-    JS_SetPropertyStr(ctx, JS_GetGlobalObject(ctx), "reaforge", obj);
+    JSValue global = JS_GetGlobalObject(ctx);
+    JS_SetPropertyStr(ctx, global, "reaforge", obj);
+    JS_FreeValue(ctx, global);
 }
 
 }

@@ -1,19 +1,11 @@
-project('reaforge_spike', 'cpp',
-    version : '0.0.1',
-    license : 'MIT',
-    default_options : ['cpp_std=c++17', 'warning_level=2'])
-
 cc = meson.get_compiler('cpp')
+cc_c = meson.get_compiler('c')
 
-lua_dep = dependency('lua5.4', required : false)
-if not lua_dep.found()
-    lua_dep = dependency('lua-5.4', required : false)
-endif
-if not lua_dep.found()
-    lua_dep = cc.find_library('lua5.4', required : true)
-endif
+lua_inc = include_directories('/home/stephano/.local/include')
+lua_lib = cc.find_library('lua', dirs : '/home/stephano/.local/lib')
+lua_dep = declare_dependency(include_directories : lua_inc, dependencies : lua_lib)
 
-quickjs_root = meson.project_source_root() / 'third_party' / 'quickjs-ng'
+quickjs_root = '..' / '..' / 'third_party' / 'quickjs-ng'
 quickjs_lib = static_library('quickjs',
     quickjs_root / 'quickjs.c',
     quickjs_root / 'quickjs-libc.c',
@@ -21,11 +13,11 @@ quickjs_lib = static_library('quickjs',
     quickjs_root / 'libunicode.c',
     quickjs_root / 'dtoa.c',
     include_directories : include_directories(quickjs_root),
-    c_args : ['-w', '-fno-strict-aliasing'],
+    c_args : ['-w', '-fno-strict-aliasing', '-D_GNU_SOURCE', '-DCONFIG_LINUX'],
     gnu_symbol_visibility : 'hidden',
     install : false)
 
-reaper_sdk_root = meson.project_source_root() / 'third_party' / 'reaper-sdk' / 'sdk'
+reaper_sdk_root = '..' / '..' / 'third_party' / 'reaper-sdk' / 'sdk'
 
 bridge_sources = [
     'bridge/bridge.cpp',
@@ -40,14 +32,16 @@ runtime_sources = [
     'runtime/jsfx_runtime.cpp',
 ]
 
-common_inc = include_directories('.')
+common_inc = include_directories('.', quickjs_root)
 
-reaper_plugin_h = reaper_sdk_root / 'reaper_plugin.h'
-have_reaper_sdk = reaper_plugin_h.exists()
-message('REAPER SDK headers: ' + (have_reaper_sdk ? 'found' : 'not found'))
+have_reaper_sdk = run_command('test', '-f', reaper_sdk_root / 'reaper_plugin.h', check : false).returncode() == 0
+message('REAPER SDK headers: ' + (have_reaper_sdk ? 'found' : 'not found at ' + reaper_sdk_root))
 
-host_lib = shared_library('reaper_reaforge_host',
+reaper_core = shared_library('reaper_reaforge_host',
     'host.cpp',
+    'panel.cpp',
+    'context_menu.cpp',
+    'extension_loader.cpp',
     'executor.cpp',
     runtime_sources,
     bridge_sources,
@@ -77,4 +71,13 @@ host_main = executable('reaforge_host_main',
     link_with : quickjs_lib,
     install : false)
 
-test('init_smoke', host_main, suite : 'spike')
+test('init_smoke', host_main, suite : 'host')
+
+test_loader = executable('test_loader',
+    'extension_loader.cpp',
+    'tests/test_loader.cpp',
+    include_directories : common_inc,
+    dependencies : [lua_dep],
+    install : false)
+
+test('loader', test_loader, suite : 'host')

@@ -1,18 +1,21 @@
 #pragma once
 
-#include <lua.h>
+#include <quickjs.h>
+
+#include <string>
 
 namespace reaforge {
 
-class LuaRuntime {
+class QuickJSRuntime {
 public:
     bool init();
     void shutdown();
     bool eval(const std::string& source, std::string& out_result, std::string& out_error);
-    lua_State* state() { return L_; }
+    JSContext* context() { return ctx_; }
 
 private:
-    lua_State* L_ = nullptr;
+    JSRuntime* rt_ = nullptr;
+    JSContext* ctx_ = nullptr;
 };
 
 }

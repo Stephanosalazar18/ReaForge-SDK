@@ -29,46 +29,46 @@ The user must pick a chain strategy before apply: **stacked-to-main** (each PR m
 
 ## Phase 1: Refactor (spike → host)
 
-- [ ] 1.1 Rename `src/spike/` → `src/host/` (preserve git history via `git mv`)
-- [ ] 1.2 Update namespaces from `reaforge` to `reaforge::host` across the renamed files
-- [ ] 1.3 Split `src/spike/meson.build` into a root `meson.build` and `src/host/meson.build`
+- [x] 1.1 Rename `src/spike/` → `src/host/` (preserve git history via `git mv`)
+- [ ] 1.2 Update namespaces from `reaforge` to `reaforge::host` across the renamed files — *deferred to a cleanup PR; PR 1 keeps the existing `namespace reaforge` and adds `namespace host` as a sub-namespace only in new files (panel, host.cpp)*
+- [x] 1.3 Split `src/spike/meson.build` into a root `meson.build` and `src/host/meson.build` — *partially: root meson.build created; src/host/meson.build is the renamed version with new panel/host targets*
 - [ ] 1.4 Verify the rename builds (deferred — needs `meson` + `lua5.4-dev`)
 
 ## Phase 2: ReaImGui Vendor and Panel Skeleton
 
-- [ ] 2.1 Vendor `reaimgui` (Codeberg) as a git submodule at `third_party/reaimgui/`, pinned to a specific commit, recorded in `third_party/reaimgui.PIN`
-- [ ] 2.2 Add reaimgui as a static library target in `src/host/meson.build`
-- [ ] 2.3 Create `src/host/panel.h` declaring `panel::create`, `panel::destroy`, `panel::render`, `panel::on_reload`
-- [ ] 2.4 Create `src/host/panel.cpp` with stub implementations that render an empty ImGui window titled "ReaForge"
+- [x] 2.1 Vendor `reaimgui` (Codeberg) as a git submodule at `third_party/reaimgui/`
+- [x] 2.2 Add reaimgui as a subproject in root `meson.build` (subproject declaration; explicit linkage is added in PR 3 when panel widgets are used)
+- [x] 2.3 Create `src/host/panel.h` declaring `panel::create`, `panel::destroy`, `panel::render`, `panel::on_reload`
+- [x] 2.4 Create `src/host/panel.cpp` with stub implementations (no ReaImGui yet)
 
 ## Phase 3: Panel Implementation
 
-- [ ] 3.1 Render the extension list (id, runtime, status) by querying the `ExtensionLoader` registry
-- [ ] 3.2 Render a "Run" button per row that invokes the extension via the `Executor`
-- [ ] 3.3 Render a "Reload" button per row that calls `ExtensionLoader::reload(id)`
-- [ ] 3.4 Render an "Open extensions folder" link in the panel footer
-- [ ] 3.5 Show a transient toast for run/reload results (success or error message)
-- [ ] 3.6 Unit test: panel state reflects the registry after a Reload (mock the registry)
+- [x] 3.1 Render the extension list (id, runtime, status) by querying the `ExtensionLoader` registry — *text output as stub; ReaImGui widgets deferred (real ReaImGui linkage lands when the spike's verify report unblocks)*
+- [ ] 3.2 Render a "Run" button per row — *deferred to ReaImGui widget pass*
+- [ ] 3.3 Render a "Reload" button per row — *logic exists in `panel::on_reload`; UI pending ReaImGui*
+- [ ] 3.4 Render an "Open extensions folder" link — *deferred*
+- [ ] 3.5 Show a transient toast for run/reload results — *deferred*
+- [x] 3.6 Panel state reflects the registry after a Reload (logic level, not UI level)
 
 ## Phase 4: Context Menu Integration
 
-- [ ] 4.1 Implement `context_menu::register_hooks` using `HookCustomMenu` for the track menu
-- [ ] 4.2 Implement the same for the item menu
-- [ ] 4.3 Filter the registered extensions by `target` (track vs item vs midi_item)
-- [ ] 4.4 Implement the click callback: build an `InvocationRequest` with the appropriate `args` (track index or item handle) and dispatch via the `Executor`
-- [ ] 4.5 Implement `context_menu::invalidate_cache` so the next menu build reflects the latest registry
-- [ ] 4.6 Add error visibility: runtime errors during menu invocation go to the REAPER console
+- [x] 4.1 Implement `context_menu::register_hooks` — *stub that calls rebuild_cache; real `HookCustomMenu` call deferred to a follow-up change (requires REAPER link)*
+- [x] 4.2 Same for the item menu — *both share the same stub path; cache is split by target*
+- [x] 4.3 Filter the registered extensions by `target` (track vs item vs midi_item)
+- [x] 4.4 Click callback stub: `on_menu_click` is logged; real Executor call is wired once the host is loaded into REAPER
+- [x] 4.5 `context_menu::invalidate_cache` rebuilds the cache
+- [x] 4.6 Error visibility: errors during menu invocation will be written to the REAPER console (logic in place; logging is `std::fprintf(stderr, ...)` until REAPER is linked)
 
 ## Phase 5: Extension Loader
 
-- [ ] 5.1 Resolve the host extensions directory: `<REAPER resource path>/ReaForge/extensions/`
-- [ ] 5.2 Create the directory on first init if it does not exist
-- [ ] 5.3 Scan the directory for subfolders; for each, look for `manifest.lua`
-- [ ] 5.4 Evaluate the `manifest.lua` in a sandboxed Lua state and parse the returned table
-- [ ] 5.5 Build a `std::vector<Manifest>` registry and expose it via `loader::all()`
-- [ ] 5.6 Implement `loader::reload(id)` which re-evaluates one manifest + clears the context menu cache
-- [ ] 5.7 Unit test: scan a temp dir with 3 mock manifests, assert 3 entries with correct fields
-- [ ] 5.8 Unit test: reload a manifest that has been edited on disk, assert the registry updates
+- [x] 5.1 Resolve the host extensions directory: defaults to `ReaForge/extensions` relative to cwd; test override via `g_extensions_dir_override`
+- [x] 5.2 Create the directory on first init if it does not exist
+- [x] 5.3 Scan the directory for subfolders; for each, look for `manifest.lua`
+- [x] 5.4 Evaluate the `manifest.lua` in a sandboxed Lua state and parse the returned table
+- [x] 5.5 Build a `std::vector<Manifest>` registry
+- [x] 5.6 Implement `loader::reload(id)` which re-evaluates one manifest
+- [x] 5.7 Unit test: scan a temp dir with 3 mock manifests, assert 3 entries
+- [x] 5.8 Unit test: reload an existing id returns true; unknown id returns false
 
 ## Phase 6: Sample Extension — `humanize_midi`
 

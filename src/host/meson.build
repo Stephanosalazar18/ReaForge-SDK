@@ -49,6 +49,8 @@ message('REAPER SDK headers: ' + (have_reaper_sdk ? 'found' : 'not found'))
 reaper_core = shared_library('reaper_reaforge_host',
     'host.cpp',
     'panel.cpp',
+    'context_menu.cpp',
+    'extension_loader.cpp',
     'executor.cpp',
     runtime_sources,
     bridge_sources,

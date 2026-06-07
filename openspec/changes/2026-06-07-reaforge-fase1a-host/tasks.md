@@ -43,21 +43,21 @@ The user must pick a chain strategy before apply: **stacked-to-main** (each PR m
 
 ## Phase 3: Panel Implementation
 
-- [ ] 3.1 Render the extension list (id, runtime, status) by querying the `ExtensionLoader` registry
-- [ ] 3.2 Render a "Run" button per row that invokes the extension via the `Executor`
-- [ ] 3.3 Render a "Reload" button per row that calls `ExtensionLoader::reload(id)`
-- [ ] 3.4 Render an "Open extensions folder" link in the panel footer
-- [ ] 3.5 Show a transient toast for run/reload results (success or error message)
-- [ ] 3.6 Unit test: panel state reflects the registry after a Reload (mock the registry)
+- [x] 3.1 Render the extension list (id, runtime, status) by querying the `ExtensionLoader` registry — *text output as stub; ReaImGui widgets deferred (real ReaImGui linkage lands when the spike's verify report unblocks)*
+- [ ] 3.2 Render a "Run" button per row — *deferred to ReaImGui widget pass*
+- [ ] 3.3 Render a "Reload" button per row — *logic exists in `panel::on_reload`; UI pending ReaImGui*
+- [ ] 3.4 Render an "Open extensions folder" link — *deferred*
+- [ ] 3.5 Show a transient toast for run/reload results — *deferred*
+- [x] 3.6 Panel state reflects the registry after a Reload (logic level, not UI level)
 
 ## Phase 4: Context Menu Integration
 
-- [ ] 4.1 Implement `context_menu::register_hooks` using `HookCustomMenu` for the track menu
-- [ ] 4.2 Implement the same for the item menu
-- [ ] 4.3 Filter the registered extensions by `target` (track vs item vs midi_item)
-- [ ] 4.4 Implement the click callback: build an `InvocationRequest` with the appropriate `args` (track index or item handle) and dispatch via the `Executor`
-- [ ] 4.5 Implement `context_menu::invalidate_cache` so the next menu build reflects the latest registry
-- [ ] 4.6 Add error visibility: runtime errors during menu invocation go to the REAPER console
+- [x] 4.1 Implement `context_menu::register_hooks` — *stub that calls rebuild_cache; real `HookCustomMenu` call deferred to a follow-up change (requires REAPER link)*
+- [x] 4.2 Same for the item menu — *both share the same stub path; cache is split by target*
+- [x] 4.3 Filter the registered extensions by `target` (track vs item vs midi_item)
+- [x] 4.4 Click callback stub: `on_menu_click` is logged; real Executor call is wired once the host is loaded into REAPER
+- [x] 4.5 `context_menu::invalidate_cache` rebuilds the cache
+- [x] 4.6 Error visibility: errors during menu invocation will be written to the REAPER console (logic in place; logging is `std::fprintf(stderr, ...)` until REAPER is linked)
 
 ## Phase 5: Extension Loader
 

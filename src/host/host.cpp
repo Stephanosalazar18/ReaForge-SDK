@@ -1,4 +1,5 @@
 #include "host.h"
+#include "executor.h"
 #include "panel.h"
 #include "context_menu.h"
 #include "extension_loader.h"

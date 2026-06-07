@@ -1,6 +1,10 @@
 #pragma once
 
+extern "C" {
 #include <lua.h>
+}
+
+#include <string>
 
 namespace reaforge {
 

@@ -1,4 +1,4 @@
-#include "jsfx_runtime.h"
+#include "../runtime/jsfx_runtime.h"
 
 #include <string>
 

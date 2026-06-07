@@ -1,9 +1,10 @@
-project('reaforge', 'cpp',
+project('reaforge', 'cpp', 'c',
     version : '0.0.1',
     license : 'MIT',
     default_options : ['cpp_std=c++17', 'warning_level=2'])
 
 cc = meson.get_compiler('cpp')
+cc_c = meson.get_compiler('c')
 
 reaimgui = subproject('reaimgui', required : false)
 have_reaimgui = reaimgui.found()

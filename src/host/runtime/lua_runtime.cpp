@@ -1,7 +1,11 @@
 #include "lua_runtime.h"
 
+extern "C" {
+#include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+}
+
 #include <string>
 
 namespace reaforge {

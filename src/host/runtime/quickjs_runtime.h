@@ -2,6 +2,8 @@
 
 #include <quickjs.h>
 
+#include <string>
+
 namespace reaforge {
 
 class QuickJSRuntime {

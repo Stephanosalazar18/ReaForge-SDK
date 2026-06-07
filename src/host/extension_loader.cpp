@@ -1,5 +1,11 @@
 #include "extension_loader.h"
 
+extern "C" {
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+}
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -9,25 +15,17 @@
 #include <sstream>
 #include <string>
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-
 namespace reaforge {
 namespace host {
 namespace loader {
 
 namespace fs = std::filesystem;
 
-namespace {
-
 const std::string kDefaultDir = "ReaForge/extensions";
-
-}
 
 std::string g_extensions_dir_override;
 
-std::string read_file(const fs::path& path) {
+static std::string read_file(const fs::path& path) {
     std::ifstream f(path);
     if (!f) return {};
     std::stringstream ss;
@@ -35,7 +33,7 @@ std::string read_file(const fs::path& path) {
     return ss.str();
 }
 
-bool parse_manifest(const std::string& lua_source, Manifest& out, std::string& err) {
+static bool parse_manifest(const std::string& lua_source, Manifest& out, std::string& err) {
     lua_State* L = luaL_newstate();
     if (!L) { err = "luaL_newstate failed"; return false; }
     luaL_openlibs(L);
@@ -61,8 +59,6 @@ bool parse_manifest(const std::string& lua_source, Manifest& out, std::string& e
     if (out.entry.empty()) out.entry = "run";
     lua_close(L);
     return !(out.id.empty() || out.runtime.empty() || out.target.empty());
-}
-
 }
 
 const std::string& extensions_dir() {

@@ -1,0 +1,45 @@
+# Build artifacts
+build/
+build-*/
+out/
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+*.a
+*.lib
+*.exe
+
+# Meson
+.mesonpy/
+
+# Node / TypeScript SDK
+node_modules/
+dist/
+*.tsbuildinfo
+.pnpm-store/
+
+# Python (for tooling)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# REAPER runtime artifacts
+*.RPP.bak
+reaper-errorlog.txt
+
+# ReaForge local state
+.reaforge/
+*.reforge
+
+# Logs
+*.log

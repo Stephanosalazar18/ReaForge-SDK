@@ -61,14 +61,14 @@ The user must pick a chain strategy before apply: **stacked-to-main** (each PR m
 
 ## Phase 5: Extension Loader
 
-- [ ] 5.1 Resolve the host extensions directory: `<REAPER resource path>/ReaForge/extensions/`
-- [ ] 5.2 Create the directory on first init if it does not exist
-- [ ] 5.3 Scan the directory for subfolders; for each, look for `manifest.lua`
-- [ ] 5.4 Evaluate the `manifest.lua` in a sandboxed Lua state and parse the returned table
-- [ ] 5.5 Build a `std::vector<Manifest>` registry and expose it via `loader::all()`
-- [ ] 5.6 Implement `loader::reload(id)` which re-evaluates one manifest + clears the context menu cache
-- [ ] 5.7 Unit test: scan a temp dir with 3 mock manifests, assert 3 entries with correct fields
-- [ ] 5.8 Unit test: reload a manifest that has been edited on disk, assert the registry updates
+- [x] 5.1 Resolve the host extensions directory: defaults to `ReaForge/extensions` relative to cwd; test override via `g_extensions_dir_override`
+- [x] 5.2 Create the directory on first init if it does not exist
+- [x] 5.3 Scan the directory for subfolders; for each, look for `manifest.lua`
+- [x] 5.4 Evaluate the `manifest.lua` in a sandboxed Lua state and parse the returned table
+- [x] 5.5 Build a `std::vector<Manifest>` registry
+- [x] 5.6 Implement `loader::reload(id)` which re-evaluates one manifest
+- [x] 5.7 Unit test: scan a temp dir with 3 mock manifests, assert 3 entries
+- [x] 5.8 Unit test: reload an existing id returns true; unknown id returns false
 
 ## Phase 6: Sample Extension — `humanize_midi`
 

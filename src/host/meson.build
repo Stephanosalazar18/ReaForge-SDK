@@ -79,3 +79,12 @@ host_main = executable('reaforge_host_main',
     install : false)
 
 test('init_smoke', host_main, suite : 'host')
+
+test_loader = executable('test_loader',
+    'extension_loader.cpp',
+    'tests/test_loader.cpp',
+    include_directories : common_inc,
+    dependencies : [lua_dep],
+    install : false)
+
+test('loader', test_loader, suite : 'host')

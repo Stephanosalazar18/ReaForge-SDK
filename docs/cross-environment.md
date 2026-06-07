@@ -129,6 +129,16 @@ When the user starts their REAPER + opencode session:
 
 If either REAPER or opencode is not running, the bridge exits non-zero and opencode shows a clear "REAPER not reachable" error to the user. No silent failures.
 
+## Bridge layer validated by spike
+
+The bridge layer (Python MCP server on top of the extension's HTTP API) is independently validated:
+
+- `tools/stub_reaper_server.py` — Python HTTP server that answers the contract with hardcoded data.
+- `tools/opencode_bridge.py` — MCP server that registers 5 tools and proxies each to the stub.
+- `tools/run_bridge_smoke.sh` — end-to-end smoke using the official `mcp` Python client.
+
+Run with `./tools/run_bridge_smoke.sh`. The result is in `bridge-spike-results.md`. The spike returned **GO** — the bridge design works, all 5 tools round-trip through MCP, and the HTTP<->MCP translation is correct.
+
 ## The API (HTTP/JSON)
 
 The extension exposes a small REST surface. Examples (full spec in `docs/api.md` once Fase 5 lands):

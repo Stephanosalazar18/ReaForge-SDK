@@ -13,7 +13,19 @@ ReaForge turns REAPER into an extensible platform: third parties (humans and AI 
 - A C++ REAPER extension that hosts multiple language runtimes.
 - A typed SDK in TypeScript with Lua as the primary authoring language.
 - A distribution channel via ReaPack and a web registry.
-- A first-party **opencode-bridge** extension that exposes REaForge as tools to an AI agent.
+- A first-party **opencode-bridge** extension (Fase 5) that exposes ReaForge as tools to an AI agent.
+
+## How users interact with ReaForge
+
+There are three flows, shipped in order. See [`docs/user-flows.md`](docs/user-flows.md) for the full diagrams.
+
+| Flow | Description | Phase | Requires opencode? |
+|---|---|---|---|
+| **1** | Native — panel + context menu inside REAPER | Fase 1a | No |
+| **2** | opencode as external CLI control plane | Fase 5 | Yes, external |
+| **3** | opencode chat embedded in REAPER as a second dock | Fase 5+ | Yes, embedded |
+
+Fase 1a (the current change) ships Flow 1. opencode integration is deferred and will not block this milestone.
 
 ## What this is not
 

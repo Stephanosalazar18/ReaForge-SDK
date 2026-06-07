@@ -2,7 +2,9 @@
 
 ## Intent
 
-Promote the Phase 0 spike from "library that does no-ops" to "platform you can see and use from inside REAPER". This change delivers the user-facing host: a ReaImGui dock panel, context menu integration, and one working sample extension. It does not include distribution, registry, or AI integration — those are subsequent changes.
+Promote the Phase 0 spike from "library that does no-ops" to "platform you can see and use from inside REAPER". This change delivers the user-facing host for **Flow 1** (see `docs/user-flows.md`): a ReaImGui dock panel, context menu integration, and one working sample extension. The user interacts with ReaForge entirely from inside REAPER; no external agent is required.
+
+**Flow 2** (opencode as an external CLI control plane) and **Flow 3** (opencode chat embedded as a ReaImGui dock) are explicitly **deferred to Fase 5** (`opencode-bridge` change). They are not part of this proposal and do not block the Fase 1a ship.
 
 ## Scope
 
@@ -21,7 +23,7 @@ Promote the Phase 0 spike from "library that does no-ops" to "platform you can s
 
 - ReaPack packaging and distribution (Fase 3).
 - Web registry (Fase 4).
-- `opencode-bridge` (Fase 5).
+- **`opencode-bridge` and any AI/agent integration (Fase 5).** This includes the opencode chat dock (Flow 3) and the opencode-as-MCP-server flow (Flow 2). They are not deliverables of Fase 1a.
 - Multi-platform CI (Fase 6 — can be added in a follow-up change).
 - More than one sample extension.
 - Bridge surface expansion beyond the 5 functions from the spike.

@@ -1,110 +1,99 @@
-# ReaForge SDK
+# ReaForge
 
-Open SDK + runtime for building **Extensions** for [REAPER](https://www.reaper.fm/), inspired by the [Ableton Extensions SDK](https://www.ableton.com/en/live/extensions/).
+An [opencode](https://github.com/sst/opencode)-powered REAPER extension that **generates native REAPER artifacts on demand** — JSFX effects, ReaScript Lua scripts, and FX chains — from plain-English prompts. Inspired by the [Ableton Extensions SDK](https://www.ableton.com/en/live/extensions/) philosophy ("describe the idea, an AI assistant builds it") but built for REAPER's native runtimes, not a new embedded interpreter.
 
-ReaForge turns REAPER into an extensible platform: third parties (humans and AI agents alike) can ship small, focused tools that integrate into REAPER's context menus, action list, and dock panels — written in Lua, JSFX, or TypeScript, all running inside a single host extension.
+> ReaForge does **not** mutate live REAPER state. It only reads project context and writes files into REAPER's own folders. The user runs the generated artifacts when they want.
 
 ## Status
 
-**Fase 1a — Host with ReaImGui panel.** Code complete, verification deferred (requires REAPER 7 Linux). The two active changes are:
+**Agentic MVP — PR 1 of 7.** Documentation rewrite. The pivot from the previous "multi-runtime SDK" scope to the current "artifact generator" scope is captured in `docs/documentacion/01-vision-and-pivot.md`.
 
-- [`openspec/changes/2026-06-07-reaforge-spike/`](openspec/changes/2026-06-07-reaforge-spike/) — Phase 0 spike (FAIL, pending runtime verification)
-- [`openspec/changes/2026-06-07-reaforge-fase1a-host/`](openspec/changes/2026-06-07-reaforge-fase1a-host/) — Fase 1a, the user-facing host
+| Item | State |
+|---|---|
+| Bridge spike (5 pre-pivot tools) | GO (5/5) — see `bridge-spike-results.md` |
+| MVP (7 tools, HTTP C++ extension) | In progress — 7 PRs |
+| Multi-runtime specs | Rejected by the pivot, archived post-MVP |
 
-## What this is
+## Try it
 
-- A C++ REAPER extension that hosts multiple language runtimes.
-- A typed SDK in TypeScript with Lua as the primary authoring language.
-- A distribution channel via ReaPack and a web registry.
-- A first-party **opencode-bridge** extension (Fase 5) that exposes ReaForge as tools to an AI agent.
+Open opencode Desktop with the ReaForge bridge configured, type any of these prompts, and within 2 minutes the artifact lands in the right REAPER folder ready to use:
 
-## How users interact with ReaForge
+> **"Generate a JSFX that does soft tape saturation"** → `Effects/ReaForge/tape_saturation.jsfx`
 
-There are three flows, shipped in order. See [`docs/user-flows.md`](docs/user-flows.md) for the full diagrams and [`docs/cross-environment.md`](docs/cross-environment.md) for how the four actors (REAPER, extension, opencode-bridge, opencode) communicate.
+> **"Write a Lua script that doubles the velocity of selected MIDI notes"** → `Scripts/ReaForge/double_velocity.lua`
 
-| Flow | Description | Phase | Requires opencode? |
-|---|---|---|---|
-| **1** | Native — panel + context menu inside REAPER | Fase 1a | No |
-| **2** | opencode as external CLI control plane | Fase 5 | Yes, external |
-| **3** | opencode chat embedded in REAPER as a second dock | Fase 5+ | Yes, embedded |
+> **"Combine the built-in delay and ReaEQ into a vocal slap chain"** → `FXChains/ReaForge/vocal_slap.RfxChain`
 
-Fase 1a (the current change) ships Flow 1. opencode integration is deferred and will not block this milestone.
+opencode's built-in MCP tool approval shows you the generated code before any `reaforge_save_*` call lands — we do not build our own confirmation UI.
 
-## Build and load into REAPER
+## How it works
 
-### Linux (Ubuntu 22.04+ or similar)
-
-```bash
-sudo apt install meson lua5.4-dev g++ liblua5.4-dev
-git clone --recurse-submodules https://github.com/Stephanosalazar18/ReaForge-SDK.git
-cd ReaForge-SDK
-meson setup build
-ninja -C build
-cp build/libreaper_reaforge_host.so ~/.config/REAPER/UserPlugins/
+```
+opencode desktop ──► MCP bridge (Python, 7 tools) ──► HTTP ──► C++ extension inside REAPER ──► filesystem
+                                                                                                  │
+                                            REAPER loads the artifacts natively from:           ▼
+                                            Effects/ReaForge/*.jsfx
+                                            Scripts/ReaForge/*.lua
+                                            FXChains/ReaForge/*.RfxChain
 ```
 
-Then restart REAPER. The host's panel appears in the bottom dock by default.
+| Layer | Lives in | Role |
+|---|---|---|
+| Agent | opencode Desktop (external) | Talks to the user, decides what to generate, calls bridge tools |
+| Bridge | `tools/opencode_bridge.py` | 7 MCP tools (3 Read + 3 Write + 1 Refresh), translates to HTTP |
+| Extension | `src/host/` → `reaper_reaforge_host.dll` | HTTP server, filesystem writes, REAPER refresh hook |
+| REAPER | DAW | Loads the artifacts natively — no runtime embedding |
 
-### macOS
+## Build and load
+
+### Linux (WSL2 Ubuntu)
 
 ```bash
-brew install meson lua
-git clone --recurse-submodules https://github.com/Stephanosalazar18/ReaForge-SDK.git
-cd ReaForge-SDK
-meson setup build
-ninja -C build
-cp build/libreaper_reaforge_host.dylib ~/Library/Application\ Support/REAPER/UserPlugins/
+./scripts/install-build-deps.sh
+./scripts/build-and-load-linux.sh
 ```
 
-### Windows (MSVC)
+The script installs `meson`, `lua5.4`, `g++`, configures the build, and copies `libreaper_reaforge_host.so` into `~/.config/REAPER/UserPlugins/`. Restart REAPER; the host extension auto-registers.
+
+### Windows (MSVC, native)
 
 ```cmd
-git clone --recurse-submodules https://github.com/Stephanosalazar18/ReaForge-SDK.git
-cd ReaForge-SDK
-"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" amd64
-meson setup build
-ninja -C build
-copy build\reaper_reaforge_host.dll "%APPDATA%\REAPER\UserPlugins\"
+scripts\build-windows.bat
 ```
 
-## Writing your first extension
+Produces `reaper_reaforge_host.dll` and copies it to `%APPDATA%\REAPER\UserPlugins\`. See [`docs/documentacion/`](docs/documentacion/) for the full build walkthrough.
 
-Extensions live in `<REAPER resource path>/ReaForge/extensions/<id>/` and consist of a `manifest.lua` plus a source file in the declared runtime. A complete example is shipped at `src/host/extensions/humanize_midi/`:
+## The 7 bridge tools
 
-```lua
--- manifest.lua
-return {
-    id      = "humanize_midi",
-    name    = "Humanize MIDI",
-    runtime = "lua",
-    target  = "midi_item",
-    entry   = "run",
-}
-```
+| Group | Tool | What it does |
+|---|---|---|
+| Read | `reaforge_get_state` | Project snapshot (tracks, items, FX per track, BPM, sample rate) |
+| Read | `reaforge_list_artifacts` | Files under the 3 `ReaForge/` subfolders with size + mtime |
+| Read | `reaforge_get_api_reference(target)` | Embedded cheatsheet for `jsfx` / `reascript_lua` / `fx_chain_format` |
+| Write | `reaforge_save_jsfx(name, code)` | Writes `Effects/ReaForge/<name>.jsfx` |
+| Write | `reaforge_save_lua(name, code, register_action?)` | Writes `Scripts/ReaForge/<name>.lua`; opt-in action registration |
+| Write | `reaforge_save_fx_chain(name, content)` | Writes `FXChains/ReaForge/<name>.RfxChain` |
+| Refresh | `reaforge_refresh()` | Asks REAPER to rescan FX + Action List |
 
-```lua
--- humanize_midi.lua
-local M = {}
+`save_*` tools refuse to overwrite existing files unless `overwrite=true` is passed.
 
-function M.run(ctx)
-    if not ctx or not ctx.item then
-        return { ok = false, error = "no item in context" }
-    end
-    local item = ctx.item
-    local ok, notes = pcall(reaper.MIDI_GetNotes, item)
-    if not ok then return { ok = false, error = "MIDI_GetNotes failed" } end
-    for _, n in ipairs(notes) do
-        n.pos = n.pos + (math.random() - 0.5) * 0.012
-        n.vel = math.max(1, math.min(127, n.vel + math.floor((math.random() - 0.5) * 8)))
-    end
-    pcall(reaper.MIDI_SetNotes, item, notes, nil, nil, "Humanize MIDI")
-    return { ok = true, count = #notes }
-end
+## Documentation
 
-return M
-```
+| Doc | What it covers |
+|---|---|
+| [`docs/documentacion/`](docs/documentacion/) | The handoff: vision, architecture, MVP scope, plan |
+| [`docs/cross-environment.md`](docs/cross-environment.md) | Transport across WSL → Windows → REAPER (still valid) |
+| [`openspec/changes/2026-06-07-reaforge-agentic-mvp/`](openspec/changes/2026-06-07-reaforge-agentic-mvp/) | The current change (proposal, specs, design, tasks) |
 
-The extension is auto-discovered on host startup and on Reload.
+## Roadmap
+
+| Phase | Goal | Entry point |
+|---|---|---|
+| **MVP (now)** | 7 tools live, opencode Desktop drives | opencode Desktop |
+| **+1 Polish** | Richer context (FX params, automation), smarter naming | opencode Desktop |
+| **+2 Context menu** | Right-click on track/item/FX → "Generate with ReaForge" | REAPER context menu |
+| **+3 Internal chat** | ReaImGui chat dock inside REAPER (shells out to opencode) | REAPER dock |
+| **+4 Distribution** | ReaPack package, signed builds | ReaPack |
 
 ## License
 

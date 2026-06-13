@@ -51,64 +51,21 @@ def make_server() -> Server:
 
     @server.list_tools()
     async def list_tools() -> list[Tool]:
-        return [
-            Tool(
-                name="reaforge_health",
-                description="Check that the ReaForge extension is reachable and report its version.",
-                inputSchema={"type": "object", "properties": {}},
-            ),
-            Tool(
-                name="reaforge_get_state",
-                description="Return the full REAPER project state: tracks, tempo, cursor, and the extension registry.",
-                inputSchema={"type": "object", "properties": {}},
-            ),
-            Tool(
-                name="reaforge_list_tracks",
-                description="List the tracks in the current project, with volume, pan, and mute status.",
-                inputSchema={"type": "object", "properties": {}},
-            ),
-            Tool(
-                name="reaforge_list_extensions",
-                description="List the ReaForge extensions currently loaded.",
-                inputSchema={"type": "object", "properties": {}},
-            ),
-            Tool(
-                name="reaforge_run_extension",
-                description="Invoke a ReaForge extension by id with the given JSON args.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "string", "description": "Extension id (e.g. 'humanize_midi')"},
-                        "args": {
-                            "type": "object",
-                            "description": "JSON args to pass to the extension",
-                            "additionalProperties": True,
-                        },
-                    },
-                    "required": ["id"],
-                },
-            ),
-        ]
+        # MVP tool surface is 7 tools: 3 Read + 3 Write + 1 Refresh.
+        # The pre-pivot 5-tool surface (health, list_tracks, list_extensions,
+        # run_extension, old get_state) was removed in the agentic pivot.
+        # See openspec/changes/2026-06-07-reaforge-agentic-mvp/specs/bridge-tools-v2/spec.md
+        return []
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         try:
-            if name == "reaforge_health":
-                r = client.get("/v1/health")
-            elif name == "reaforge_get_state":
-                r = client.get("/v1/state")
-            elif name == "reaforge_list_tracks":
-                r = client.get("/v1/tracks")
-            elif name == "reaforge_list_extensions":
-                r = client.get("/v1/extensions")
-            elif name == "reaforge_run_extension":
-                ext_id = arguments.get("id")
-                if not ext_id:
-                    return [TextContent(type="text", text=json.dumps({"error": "missing id"}))]
-                args = arguments.get("args", {})
-                r = client.post(f"/v1/extensions/{ext_id}/run", json=args)
+            r = None  # filled in by the tool branches below
+            if False:  # placeholder until the 7 tools are added in 2.3-2.9
+                pass
             else:
                 return [TextContent(type="text", text=json.dumps({"error": "unknown tool", "name": name}))]
+            assert r is not None
             r.raise_for_status()
             body = r.text
         except httpx.HTTPError as e:

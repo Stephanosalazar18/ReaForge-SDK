@@ -177,6 +177,47 @@ def make_server() -> Server:
                     "required": ["name", "code"],
                 },
             ),
+            Tool(
+                name="reaforge_save_fx_chain",
+                description=(
+                    "Write a REAPER FX chain (.RfxChain) into "
+                    "<REAPER>/FXChains/ReaForge/<name>.RfxChain. "
+                    "Refuses to overwrite unless overwrite=true."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Base name without extension (regex ^[A-Za-z0-9_-]{1,64}$).",
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": "RfxChain file contents (REAPER's chain DSL).",
+                        },
+                        "overwrite": {
+                            "type": "boolean",
+                            "description": "Set true to replace an existing file. Defaults to false.",
+                            "default": False,
+                        },
+                    },
+                    "required": ["name", "content"],
+                },
+            ),
+            Tool(
+                name="reaforge_refresh",
+                description=(
+                    "Ask the REAPER extension to rescan its FX list and Action List "
+                    "so the newly-written artifacts are immediately visible in the REAPER UI. "
+                    "Idempotent. Returns the timestamp of the refresh and any warnings "
+                    "(e.g. JSFX rescan requires manual 'Scan for new plug-ins')."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -209,6 +250,15 @@ def make_server() -> Server:
                     "overwrite": bool(arguments.get("overwrite", False)),
                 }
                 r = client.post("/v1/save/lua", json=payload)
+            elif name == "reaforge_save_fx_chain":
+                payload = {
+                    "name": arguments.get("name"),
+                    "content": arguments.get("content"),
+                    "overwrite": bool(arguments.get("overwrite", False)),
+                }
+                r = client.post("/v1/save/fx-chain", json=payload)
+            elif name == "reaforge_refresh":
+                r = client.post("/v1/refresh", json={})
             else:
                 return [TextContent(type="text", text=json.dumps({"error": "unknown tool", "name": name}))]
             r.raise_for_status()

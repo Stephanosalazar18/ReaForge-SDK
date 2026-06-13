@@ -55,17 +55,36 @@ def make_server() -> Server:
         # The pre-pivot 5-tool surface (health, list_tracks, list_extensions,
         # run_extension, old get_state) was removed in the agentic pivot.
         # See openspec/changes/2026-06-07-reaforge-agentic-mvp/specs/bridge-tools-v2/spec.md
-        return []
+        return [
+            Tool(
+                name="reaforge_get_state",
+                description=(
+                    "Return a compact projection of the current REAPER project: "
+                    "project name, sample rate, BPM, per-track FX count and names, "
+                    "and selected item count. Pass summary=true to omit per-track "
+                    "fx_names for a smaller payload."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "summary": {
+                            "type": "boolean",
+                            "description": "When true, omit per-track fx_names; only counts are returned.",
+                            "default": False,
+                        },
+                    },
+                },
+            ),
+        ]
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         try:
-            r = None  # filled in by the tool branches below
-            if False:  # placeholder until the 7 tools are added in 2.3-2.9
-                pass
+            if name == "reaforge_get_state":
+                summary = bool(arguments.get("summary", False))
+                r = client.get("/v1/state", params={"summary": "true" if summary else "false"})
             else:
                 return [TextContent(type="text", text=json.dumps({"error": "unknown tool", "name": name}))]
-            assert r is not None
             r.raise_for_status()
             body = r.text
         except httpx.HTTPError as e:

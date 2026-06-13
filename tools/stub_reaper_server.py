@@ -106,29 +106,6 @@ API_REFERENCE = {
     "fx_chain_format": "# FX Chain format (stub)\n\n<RFXCHAIN .../>\n",
 }
 
-# Legacy extensions table — kept around during the 5→7 pivot; removed
-# in the refactor commit.
-MOCK_EXTENSIONS = [
-    {
-        "id": "humanize_midi",
-        "name": "Humanize MIDI",
-        "runtime": "lua",
-        "target": "midi_item",
-        "status": "loaded",
-    },
-    {
-        "id": "render_selection",
-        "name": "Render Selection",
-        "runtime": "lua",
-        "target": "track",
-        "status": "loaded",
-    },
-]
-
-# Legacy tracks table — kept around during the 5→7 pivot.
-MOCK_TRACKS = MOCK_STATE["tracks"]
-
-
 # --- Helpers --------------------------------------------------------------
 
 
@@ -241,12 +218,6 @@ class Handler(BaseHTTPRequestHandler):
                 self, 200, {"target": target, "reference": API_REFERENCE[target]}
             )
 
-        # ---- Legacy (to be removed in PR 3 refactor) ----
-        if path == "/v1/tracks":
-            return _json(self, 200, {"tracks": MOCK_TRACKS})
-        if path == "/v1/extensions":
-            return _json(self, 200, {"extensions": MOCK_EXTENSIONS})
-
         return _json(self, 404, {"error": "not found", "path": path})
 
     def do_POST(self):
@@ -257,7 +228,7 @@ class Handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return _json(self, 400, {"error": "INVALID_JSON"})
 
-        # ---- New (PR 3) refresh route ----
+        # ---- Refresh route ----
         if self.path == "/v1/refresh":
             return _json(
                 self,
@@ -270,7 +241,7 @@ class Handler(BaseHTTPRequestHandler):
                 },
             )
 
-        # ---- New (PR 3) write routes ----
+        # ---- Write routes ----
         kind = _resolve_kind_from_path(self.path)
         if kind is not None:
             if kind not in KIND_TABLE:
@@ -286,19 +257,6 @@ class Handler(BaseHTTPRequestHandler):
             result = _write_artifact(kind, name, content or "", overwrite)
             status = result.pop("_status", 200)
             return _json(self, status, result)
-
-        # ---- Legacy (to be removed in PR 3 refactor) ----
-        if self.path.startswith("/v1/extensions/") and self.path.endswith("/run"):
-            ext_id = self.path[len("/v1/extensions/"):-len("/run")].strip("/")
-            ext = next((e for e in MOCK_EXTENSIONS if e["id"] == ext_id), None)
-            if not ext:
-                return _json(self, 404, {"error": "unknown extension", "id": ext_id})
-            return _json(self, 200, {
-                "ok": True,
-                "id": ext_id,
-                "args": body,
-                "result": {"ok": True, "count": 47, "extension": ext["name"]},
-            })
 
         return _json(self, 404, {"error": "not found", "path": self.path})
 

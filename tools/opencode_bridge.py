@@ -116,6 +116,33 @@ def make_server() -> Server:
                     "required": ["target"],
                 },
             ),
+            Tool(
+                name="reaforge_save_jsfx",
+                description=(
+                    "Write a JSFX file into <REAPER>/Effects/ReaForge/<name>.jsfx. "
+                    "Refuses to overwrite an existing file unless overwrite=true. "
+                    "The extension creates the ReaForge/ subfolder on demand."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Base name without extension (regex ^[A-Za-z0-9_-]{1,64}$).",
+                        },
+                        "code": {
+                            "type": "string",
+                            "description": "JSFX source code (full file contents).",
+                        },
+                        "overwrite": {
+                            "type": "boolean",
+                            "description": "Set true to replace an existing file. Defaults to false.",
+                            "default": False,
+                        },
+                    },
+                    "required": ["name", "code"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -133,6 +160,13 @@ def make_server() -> Server:
                 if not target:
                     return [TextContent(type="text", text=json.dumps({"error": "INVALID_TARGET", "message": "target is required", "target": target}))]
                 r = client.get("/v1/api-reference", params={"target": target})
+            elif name == "reaforge_save_jsfx":
+                payload = {
+                    "name": arguments.get("name"),
+                    "code": arguments.get("code"),
+                    "overwrite": bool(arguments.get("overwrite", False)),
+                }
+                r = client.post("/v1/save/jsfx", json=payload)
             else:
                 return [TextContent(type="text", text=json.dumps({"error": "unknown tool", "name": name}))]
             r.raise_for_status()

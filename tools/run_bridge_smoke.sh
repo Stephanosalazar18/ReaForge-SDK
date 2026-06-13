@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # End-to-end smoke for the opencode-bridge.
-# Starts the stub REAPER server, invokes each of the 7 tools through the bridge
-# using the mcp Python client, asserts the responses.
+# Starts the PR 3 stub REAPER server (1 readiness probe + 7 post-pivot
+# endpoints), invokes each of the 7 tools through the bridge using the
+# mcp Python client, asserts the stub actually answered with 2xx for
+# every call.
 #
-# This is the post-pivot version. The 5 pre-pivot tools
-# (reaforge_health, reaforge_list_tracks, reaforge_list_extensions,
-#  reaforge_run_extension, the old reaforge_get_state) are GONE.
-# The 7 new tools are: 3 Read + 3 Write + 1 Refresh.
+# Pre-pivot tool names (reaforge_health, reaforge_list_tracks,
+# reaforge_list_extensions, reaforge_run_extension) MUST NOT appear.
+# The 5→7 swap is clean, not a 5+2 hybrid.
 
 set -euo pipefail
 
@@ -14,12 +15,10 @@ here="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$here"
 
 stub_log="$(mktemp)"
-bridge_log="$(mktemp)"
 
 cleanup() {
     [[ -n "${stub_pid:-}" ]] && kill "$stub_pid" 2>/dev/null || true
-    [[ -n "${mcp_pid:-}" ]] && kill "$mcp_pid" 2>/dev/null || true
-    rm -f "$stub_log" "$bridge_log"
+    rm -f "$stub_log"
 }
 trap cleanup EXIT
 
@@ -33,9 +32,9 @@ if ! curl -sf http://127.0.0.1:7800/v1/health >/dev/null; then
     cat "$stub_log"
     exit 1
 fi
-echo "OK: stub up"
+echo "OK: stub up (1 readiness probe + 7 post-pivot endpoints)"
 
-echo "==[2]== list bridge tools and call each of the 7"
+echo "==[2]== call each of the 7 tools through the bridge and assert 2xx"
 python3 - <<'PY' > /tmp/reaforge_bridge_smoke.out
 import asyncio, json, sys
 from mcp import ClientSession, StdioServerParameters
@@ -72,33 +71,57 @@ async def main():
             assert not leaked, f"pre-pivot tools still exposed: {leaked}"
             assert len(names) == 7, f"expected 7 tools, got {len(names)}: {names}"
 
-            # Read tools (should not 5xx; the 7-endpoint stub will 404 for now
-            # until PR 3 lands the new endpoints; the bridge should surface the
-            # http_error gracefully without crashing).
+            # Each call must come back with the success body the PR 3
+            # stub ships. The smoke asserts the wire shape, not the
+            # exact response — that's tests/test_stub_endpoints.py's job.
+            results = []
+
             r = await s.call_tool("reaforge_get_state", {"summary": True})
-            print("OK: reaforge_get_state (proxied)")
+            obj = json.loads(r.content[0].text)
+            assert "project_name" in obj, obj
+            assert "tracks" in obj, obj
+            results.append(("reaforge_get_state", obj))
+            print("OK: reaforge_get_state -> 2xx (compact projection)")
 
             r = await s.call_tool("reaforge_list_artifacts", {})
-            print("OK: reaforge_list_artifacts (proxied)")
+            obj = json.loads(r.content[0].text)
+            assert "artifacts" in obj, obj
+            results.append(("reaforge_list_artifacts", obj))
+            print("OK: reaforge_list_artifacts -> 2xx (missing-folder-tolerant)")
 
             r = await s.call_tool("reaforge_get_api_reference", {"target": "jsfx"})
-            print("OK: reaforge_get_api_reference (proxied)")
+            obj = json.loads(r.content[0].text)
+            assert obj.get("target") == "jsfx", obj
+            assert isinstance(obj.get("reference"), str) and obj["reference"], obj
+            results.append(("reaforge_get_api_reference", obj))
+            print("OK: reaforge_get_api_reference -> 2xx (embedded markdown)")
 
-            # Write tools (proxy-only at this stage; the 5-endpoint stub will 404
-            # on the new endpoints until PR 3. The bridge should still respond,
-            # not crash).
             r = await s.call_tool("reaforge_save_jsfx", {"name": "smoke_tape", "code": "// smoke"})
-            print("OK: reaforge_save_jsfx (proxied)")
+            obj = json.loads(r.content[0].text)
+            assert "path" in obj and "bytes_written" in obj, obj
+            results.append(("reaforge_save_jsfx", obj))
+            print("OK: reaforge_save_jsfx -> 2xx (wrote to fixture)")
 
             r = await s.call_tool("reaforge_save_lua", {"name": "smoke_lua", "code": "-- smoke", "register_action": False, "overwrite": False})
-            print("OK: reaforge_save_lua (proxied)")
+            obj = json.loads(r.content[0].text)
+            assert "path" in obj, obj
+            results.append(("reaforge_save_lua", obj))
+            print("OK: reaforge_save_lua -> 2xx (wrote to fixture)")
 
             r = await s.call_tool("reaforge_save_fx_chain", {"name": "smoke_chain", "content": "<smoke/>"})
-            print("OK: reaforge_save_fx_chain (proxied)")
+            obj = json.loads(r.content[0].text)
+            assert "path" in obj and "bytes_written" in obj, obj
+            results.append(("reaforge_save_fx_chain", obj))
+            print("OK: reaforge_save_fx_chain -> 2xx (wrote to fixture)")
 
             r = await s.call_tool("reaforge_refresh", {})
-            print("OK: reaforge_refresh (proxied)")
+            obj = json.loads(r.content[0].text)
+            assert "refreshed_at" in obj, obj
+            assert isinstance(obj.get("warnings"), list), obj
+            results.append(("reaforge_refresh", obj))
+            print("OK: reaforge_refresh -> 2xx (timestamped response)")
 
+            assert len(results) == 7, f"expected 7 results, got {len(results)}"
             print("ALL_PASS")
 
 asyncio.run(main())
@@ -111,9 +134,7 @@ if [[ "$result" != *"ALL_PASS"* ]]; then
     echo "==[FAIL]== bridge smoke failed"
     echo "stub log:"
     cat "$stub_log"
-    echo "bridge log:"
-    cat "$bridge_log"
     exit 1
 fi
 
-echo "==[DONE]== all 7 tools round-trip through the bridge (proxy-only until PR 3 wires the stub endpoints)"
+echo "==[DONE]== 7/7 tools round-trip through the bridge with real 2xx from the stub"

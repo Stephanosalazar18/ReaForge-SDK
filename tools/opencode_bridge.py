@@ -95,6 +95,27 @@ def make_server() -> Server:
                     },
                 },
             ),
+            Tool(
+                name="reaforge_get_api_reference",
+                description=(
+                    "Return the offline-bundled API reference markdown for one of "
+                    "three targets: 'jsfx' (JSFX cheatsheet), 'reascript_lua' (REAPER "
+                    "Lua API cheatsheet), 'fx_chain_format' (RfxChain XML format). "
+                    "Use this to ground code generation — the payloads are static, "
+                    "no network fetch."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "target": {
+                            "type": "string",
+                            "enum": ["jsfx", "reascript_lua", "fx_chain_format"],
+                            "description": "Which API reference markdown to return.",
+                        },
+                    },
+                    "required": ["target"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -107,6 +128,11 @@ def make_server() -> Server:
                 kind = arguments.get("kind")
                 params = {"kind": kind} if kind else None
                 r = client.get("/v1/artifacts", params=params)
+            elif name == "reaforge_get_api_reference":
+                target = arguments.get("target")
+                if not target:
+                    return [TextContent(type="text", text=json.dumps({"error": "INVALID_TARGET", "message": "target is required", "target": target}))]
+                r = client.get("/v1/api-reference", params={"target": target})
             else:
                 return [TextContent(type="text", text=json.dumps({"error": "unknown tool", "name": name}))]
             r.raise_for_status()

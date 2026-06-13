@@ -143,6 +143,40 @@ def make_server() -> Server:
                     "required": ["name", "code"],
                 },
             ),
+            Tool(
+                name="reaforge_save_lua",
+                description=(
+                    "Write a ReaScript Lua file into <REAPER>/Scripts/ReaForge/<name>.lua. "
+                    "If register_action=true (opt-in), the extension also calls "
+                    "reaper.AddRemoveReaScript to expose the script as a REAPER action "
+                    "and returns the new action_id. Refuses to overwrite unless "
+                    "overwrite=true."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Base name without extension (regex ^[A-Za-z0-9_-]{1,64}$).",
+                        },
+                        "code": {
+                            "type": "string",
+                            "description": "Lua source code (full file contents).",
+                        },
+                        "register_action": {
+                            "type": "boolean",
+                            "description": "Opt-in: register the script as a REAPER action. Defaults to false.",
+                            "default": False,
+                        },
+                        "overwrite": {
+                            "type": "boolean",
+                            "description": "Set true to replace an existing file. Defaults to false.",
+                            "default": False,
+                        },
+                    },
+                    "required": ["name", "code"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -167,6 +201,14 @@ def make_server() -> Server:
                     "overwrite": bool(arguments.get("overwrite", False)),
                 }
                 r = client.post("/v1/save/jsfx", json=payload)
+            elif name == "reaforge_save_lua":
+                payload = {
+                    "name": arguments.get("name"),
+                    "code": arguments.get("code"),
+                    "register_action": bool(arguments.get("register_action", False)),
+                    "overwrite": bool(arguments.get("overwrite", False)),
+                }
+                r = client.post("/v1/save/lua", json=payload)
             else:
                 return [TextContent(type="text", text=json.dumps({"error": "unknown tool", "name": name}))]
             r.raise_for_status()

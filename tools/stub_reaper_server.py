@@ -27,6 +27,7 @@ Override with the ``REAFORGE_STUB_ROOT`` environment variable.
 """
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import re
@@ -255,6 +256,19 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(raw) if raw else {}
         except json.JSONDecodeError:
             return _json(self, 400, {"error": "INVALID_JSON"})
+
+        # ---- New (PR 3) refresh route ----
+        if self.path == "/v1/refresh":
+            return _json(
+                self,
+                200,
+                {
+                    "refreshed_at": datetime.datetime.now(
+                        datetime.timezone.utc
+                    ).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "warnings": [],
+                },
+            )
 
         # ---- New (PR 3) write routes ----
         kind = _resolve_kind_from_path(self.path)

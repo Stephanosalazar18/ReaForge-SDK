@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -48,6 +49,17 @@ KIND_TABLE = {
     "lua": (SCRIPTS_DIR, ".lua"),
     "fx_chain": (FXCHAINS_DIR, ".RfxChain"),
 }
+
+# The bridge calls /v1/save/<kind>, not /v1/<kind>. The C++ spec
+# documents the latter; the stub keeps both forms as a courtesy for
+# the test fixture (some tests poke the canonical spec paths).
+SPEC_WRITE_PATHS = {
+    "jsfx": "/v1/jsfx",
+    "lua": "/v1/lua",
+    "fx_chain": "/v1/fxchain",
+}
+
+NAME_RE = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 
 # --- Hardcoded fixtures ---------------------------------------------------
 
@@ -128,6 +140,67 @@ def _json(handler: BaseHTTPRequestHandler, status: int, body: dict) -> None:
     handler.wfile.write(payload)
 
 
+def _resolve_kind_from_path(path: str) -> str | None:
+    """Map a POST path to its artifact kind, or None.
+
+    Accepts both the bridge form (/v1/save/<kind>) and the canonical
+    spec form (/v1/<kind> or /v1/fxchain). The bridge uses the
+    human-friendly form (``fx-chain`` with a hyphen) while the spec
+    uses the underscored form (``fx_chain``); we normalize here.
+    """
+    raw: str | None = None
+    if path.startswith("/v1/save/"):
+        raw = path[len("/v1/save/"):].strip("/")
+    else:
+        for kind, spec_path in SPEC_WRITE_PATHS.items():
+            if path == spec_path:
+                raw = kind
+                break
+    if not raw:
+        return None
+    # Normalize bridge form (hyphen) to internal form (underscore).
+    return raw.replace("-", "_")
+
+
+def _write_artifact(kind: str, name: str, content: str, overwrite: bool) -> dict:
+    """Shared write logic for the 3 POST /v1/save/* routes.
+
+    Returns the success body on 200, or an error envelope dict (with
+    a separate ``_status`` key) on failure. The handler is responsible
+    for promoting the envelope to the right HTTP code.
+    """
+    if not isinstance(name, str) or not NAME_RE.match(name):
+        return {
+            "_status": 400,
+            "error": "INVALID_NAME",
+            "message": "name must match ^[A-Za-z0-9_\\-]{1,64}$",
+        }
+    subdir, suffix = KIND_TABLE[kind]
+    target = os.path.join(subdir, name + suffix)
+    if os.path.exists(target) and not overwrite:
+        return {
+            "_status": 409,
+            "error": "FILE_EXISTS",
+            "path": target.replace(os.sep, "/"),
+        }
+    try:
+        os.makedirs(subdir, exist_ok=True)
+        tmp = target + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.replace(tmp, target)
+    except OSError as exc:
+        return {
+            "_status": 500,
+            "error": "WRITE_FAILED",
+            "message": str(exc),
+        }
+    return {
+        "path": target.replace(os.sep, "/"),
+        "bytes_written": len(content.encode("utf-8")),
+    }
+
+
 # --- Handler --------------------------------------------------------------
 
 
@@ -181,7 +254,24 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = json.loads(raw) if raw else {}
         except json.JSONDecodeError:
-            return _json(self, 400, {"error": "invalid JSON"})
+            return _json(self, 400, {"error": "INVALID_JSON"})
+
+        # ---- New (PR 3) write routes ----
+        kind = _resolve_kind_from_path(self.path)
+        if kind is not None:
+            if kind not in KIND_TABLE:
+                return _json(self, 404, {"error": "not found", "path": self.path})
+            name = body.get("name", "")
+            overwrite = bool(body.get("overwrite", False))
+            # jsfx and lua send `code`; fx-chain sends `content`.
+            content = (
+                body.get("code")
+                if kind in ("jsfx", "lua")
+                else body.get("content", "")
+            )
+            result = _write_artifact(kind, name, content or "", overwrite)
+            status = result.pop("_status", 200)
+            return _json(self, status, result)
 
         # ---- Legacy (to be removed in PR 3 refactor) ----
         if self.path.startswith("/v1/extensions/") and self.path.endswith("/run"):
@@ -200,6 +290,11 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    # Make sure the fixture roots exist on startup so missing-folder
+    # tolerance can be tested without a prior write.
+    for d in (EFFECTS_DIR, SCRIPTS_DIR, FXCHAINS_DIR):
+        os.makedirs(d, exist_ok=True)
+
     server = HTTPServer((HOST, PORT), Handler)
     sys.stderr.write(
         f"stub: listening on http://{HOST}:{PORT} (root={STUB_ROOT})\n"

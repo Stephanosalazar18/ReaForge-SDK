@@ -75,6 +75,26 @@ def make_server() -> Server:
                     },
                 },
             ),
+            Tool(
+                name="reaforge_list_artifacts",
+                description=(
+                    "List REAPER-native artifacts the agent can edit, grouped by "
+                    "kind: 'jsfx' (Effects/ReaForge/*.jsfx), 'lua' "
+                    "(Scripts/ReaForge/*.lua), 'fx_chain' (FXChains/ReaForge/*.RfxChain). "
+                    "Omit kind to merge all three folders. A missing folder returns "
+                    "an empty list for that kind (never an error)."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "enum": ["jsfx", "lua", "fx_chain"],
+                            "description": "Filter to one folder. Omit to list all three.",
+                        },
+                    },
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -83,6 +103,10 @@ def make_server() -> Server:
             if name == "reaforge_get_state":
                 summary = bool(arguments.get("summary", False))
                 r = client.get("/v1/state", params={"summary": "true" if summary else "false"})
+            elif name == "reaforge_list_artifacts":
+                kind = arguments.get("kind")
+                params = {"kind": kind} if kind else None
+                r = client.get("/v1/artifacts", params=params)
             else:
                 return [TextContent(type="text", text=json.dumps({"error": "unknown tool", "name": name}))]
             r.raise_for_status()

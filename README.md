@@ -77,12 +77,38 @@ Produces `reaper_reaforge_host.dll` and copies it to `%APPDATA%\REAPER\UserPlugi
 
 `save_*` tools refuse to overwrite existing files unless `overwrite=true` is passed.
 
+## End-to-end testing
+
+This is the manual smoke test that proves the MVP works. Run it after `sdd-verify` finishes and you have built + loaded the host extension on a REAPER Windows machine.
+
+### Prerequisites
+
+| # | Item | How to confirm |
+|---|---|---|
+| 1 | opencode Desktop installed and the ReaForge MCP bridge configured | opencode's MCP panel lists the 7 `reaforge_*` tools |
+| 2 | The host extension built and loaded into REAPER | `%APPDATA%\REAPER\UserPlugins\reaper_reaforge_host.dll` exists; REAPER's Extensions list shows "ReaForge host" |
+| 3 | REAPER-Windows ↔ WSL bridge discovery working | `%APPDATA%\REAPER\ReaForge\wsl-bridge.txt` exists and contains `<wsl-ip>:7800` |
+| 4 | The 3 `ReaForge/` subfolders exist (auto-created on first write) | `%APPDATA%\REAPER\{Effects,Scripts,FXChains}\ReaForge\` are present after the first run |
+
+### The 3 acceptance prompts
+
+Type each prompt into opencode Desktop. The agent should call the right `reaforge_save_*` tool, the extension should write the file, and REAPER should be able to load it. **Time budget: 2 minutes per artifact** (per the MVP success criterion).
+
+| # | Prompt | Expected artifact | How to verify in REAPER |
+|---|---|---|---|
+| 1 | "Generate a JSFX that does soft tape saturation" | `Effects/ReaForge/tape_saturation.jsfx` | Open FX Browser → search "tape_saturation" → add to a track → play audio, expect soft saturation. **If the JSFX does not appear, see Troubleshooting → "JSFX does not show up"** (a manual FX rescan is required). |
+| 2 | "Write a Lua script that doubles the velocity of selected MIDI notes" | `Scripts/ReaForge/double_velocity.lua` | Open a MIDI item, select some notes, then run **Actions → ReaForge: Double velocity** (the action is auto-registered when `register_action=true` is passed; if not, see Troubleshooting). Expect the selected notes' velocities to double. |
+| 3 | "Combine the built-in delay and ReaEQ into a vocal slap chain" | `FXChains/ReaForge/vocal_slap.RfxChain` | Select a track, **FX → Add FX chain → ReaForge → vocal_slap**. Expect ReaEQ + ReaDelay to load in that order. |
+
+After all 3 prompts pass, fill in [`mvp-results.md`](mvp-results.md) with the timestamp of each artifact, the audio/behavior observed, and the PASS/FAIL verdict per prompt.
+
 ## Documentation
 
 | Doc | What it covers |
 |---|---|
 | [`docs/documentacion/`](docs/documentacion/) | The handoff: vision, architecture, MVP scope, plan |
 | [`docs/cross-environment.md`](docs/cross-environment.md) | Transport across WSL → Windows → REAPER (still valid) |
+| [`mvp-results.md`](mvp-results.md) | The 3/3 acceptance prompt results — fill in after running End-to-end testing |
 | [`openspec/changes/2026-06-07-reaforge-agentic-mvp/`](openspec/changes/2026-06-07-reaforge-agentic-mvp/) | The current change (proposal, specs, design, tasks) |
 
 ## Roadmap

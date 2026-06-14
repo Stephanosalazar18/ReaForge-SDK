@@ -38,10 +38,11 @@ runtime_sources = [
     'runtime/jsfx_runtime.cpp',
 ]
 
-# Greenfield PR 4 sources — pure C++17, no REAPER.
+# Greenfield PR 4 + PR 5 sources — pure C++17, no REAPER.
 greenfield_sources = [
     'http_server.cpp',
     'artifact_writer.cpp',
+    'project_reader.cpp',
     'main_thread_queue.cpp',
 ]
 
@@ -123,3 +124,13 @@ test_http_server = executable('test_http_server',
     install : false)
 
 test('http_server', test_http_server, suite : 'host')
+
+# PR 5: project_reader unit test (cpp-unit; no REAPER bound).
+test_project_reader = executable('test_project_reader',
+    'project_reader.cpp',
+    'tests/test_project_reader.cpp',
+    include_directories : common_inc,
+    dependencies : [thread_dep],
+    install : false)
+
+test('project_reader', test_project_reader, suite : 'host')

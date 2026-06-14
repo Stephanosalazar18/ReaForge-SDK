@@ -77,12 +77,49 @@ Produces `reaper_reaforge_host.dll` and copies it to `%APPDATA%\REAPER\UserPlugi
 
 `save_*` tools refuse to overwrite existing files unless `overwrite=true` is passed.
 
+## End-to-end testing
+
+This is the manual smoke test that proves the MVP works. Run it after `sdd-verify` finishes and you have built + loaded the host extension on a REAPER Windows machine.
+
+### Prerequisites
+
+| # | Item | How to confirm |
+|---|---|---|
+| 1 | opencode Desktop installed and the ReaForge MCP bridge configured | opencode's MCP panel lists the 7 `reaforge_*` tools |
+| 2 | The host extension built and loaded into REAPER | `%APPDATA%\REAPER\UserPlugins\reaper_reaforge_host.dll` exists; REAPER's Extensions list shows "ReaForge host" |
+| 3 | REAPER-Windows ↔ WSL bridge discovery working | `%APPDATA%\REAPER\ReaForge\wsl-bridge.txt` exists and contains `<wsl-ip>:7800` |
+| 4 | The 3 `ReaForge/` subfolders exist (auto-created on first write) | `%APPDATA%\REAPER\{Effects,Scripts,FXChains}\ReaForge\` are present after the first run |
+
+### The 3 acceptance prompts
+
+Type each prompt into opencode Desktop. The agent should call the right `reaforge_save_*` tool, the extension should write the file, and REAPER should be able to load it. **Time budget: 2 minutes per artifact** (per the MVP success criterion).
+
+| # | Prompt | Expected artifact | How to verify in REAPER |
+|---|---|---|---|
+| 1 | "Generate a JSFX that does soft tape saturation" | `Effects/ReaForge/tape_saturation.jsfx` | Open FX Browser → search "tape_saturation" → add to a track → play audio, expect soft saturation. **If the JSFX does not appear, see Troubleshooting → "JSFX does not show up"** (a manual FX rescan is required). |
+| 2 | "Write a Lua script that doubles the velocity of selected MIDI notes" | `Scripts/ReaForge/double_velocity.lua` | Open a MIDI item, select some notes, then run **Actions → ReaForge: Double velocity** (the action is auto-registered when `register_action=true` is passed; if not, see Troubleshooting). Expect the selected notes' velocities to double. |
+| 3 | "Combine the built-in delay and ReaEQ into a vocal slap chain" | `FXChains/ReaForge/vocal_slap.RfxChain` | Select a track, **FX → Add FX chain → ReaForge → vocal_slap**. Expect ReaEQ + ReaDelay to load in that order. |
+
+After all 3 prompts pass, fill in [`mvp-results.md`](mvp-results.md) with the timestamp of each artifact, the audio/behavior observed, and the PASS/FAIL verdict per prompt.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| **JSFX does not show up in the FX browser** after the agent writes one | REAPER does not auto-rescan `Effects/` for new JSFX files. `reaper.RefreshFXList()` is not in the public REAPER SDK, so the extension cannot trigger a rescan programmatically. | Right-click in the FX browser → **Scan for new plug-ins** (or restart REAPER). The agent's `warnings[]` field in the `reaforge_refresh` response carries this hint. |
+| **Lua action does not appear in the Action List** after `reaforge_save_lua` with `register_action=true` | The Action List caches `Scripts/` entries. The extension calls `Main_OnCommand` for an SWS rescan command, but if SWS is not installed the rescan is skipped. | Run the script once manually via **Actions → Script: ReaForge/&lt;name&gt;** to force REAPER to register it. The script will then appear in the Action List on subsequent runs. |
+| **Bridge cannot reach the extension** (opencode shows "connection refused" or "503 REAPER_NOT_AVAILABLE") | Either the extension is not loaded, or the WSL host IP is unknown. | Check `%APPDATA%\REAPER\ReaForge\wsl-bridge.txt` exists and contains `<wsl-ip>:7800`. If missing, restart REAPER (the extension writes the file on `init()`). If the file is present but the bridge still fails, run `wsl hostname -I` from WSL to confirm the IP and verify the port (`netstat -an \| grep 7800` from Windows shows the listener). |
+| **503 REAPER_NOT_AVAILABLE on a tool call** after the extension was just loaded | The extension's function-pointer capture (`reaper.*` symbols) failed at load time. | Restart REAPER after loading the extension. The capture is best-effort; it does not retry. |
+| **"Overwrite refused" on a `reaforge_save_*` tool** | Safety default: `save_*` tools refuse to overwrite an existing file unless `overwrite=true` is passed. | Ask the agent to add `overwrite=true` explicitly. This is by design — see the safety decision in `proposal.md`. |
+| **Generated JSFX loads but produces silence** | LLM generated syntactically valid but semantically broken code. | Edit the file in REAPER's JSFX editor to fix the algorithm, or ask the agent to regenerate with more specific instructions. |
+
 ## Documentation
 
 | Doc | What it covers |
 |---|---|
 | [`docs/documentacion/`](docs/documentacion/) | The handoff: vision, architecture, MVP scope, plan |
 | [`docs/cross-environment.md`](docs/cross-environment.md) | Transport across WSL → Windows → REAPER (still valid) |
+| [`mvp-results.md`](mvp-results.md) | The 3/3 acceptance prompt results — fill in after running End-to-end testing |
 | [`openspec/changes/2026-06-07-reaforge-agentic-mvp/`](openspec/changes/2026-06-07-reaforge-agentic-mvp/) | The current change (proposal, specs, design, tasks) |
 
 ## Roadmap

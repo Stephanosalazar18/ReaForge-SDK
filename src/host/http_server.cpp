@@ -1,6 +1,7 @@
 #include "http_server.h"
 #include "artifact_writer.h"
 #include "project_reader.h"
+#include "refresh.h"
 
 // httplib + json are vendored at third_party/.
 #include "httplib.h"
@@ -241,12 +242,18 @@ void HttpServer::register_routes() {
         respond_write_result(res, r, /*include_action_id_if_present=*/false);
     });
 
-    // POST /v1/refresh — PR 4 stub returns 501. PR 6 fills it in.
+    // POST /v1/refresh — PR 6 implementation. Calls refresh::refresh_now()
+    // which marshals to REAPER's main thread (via the http_server worker
+    // thread blocking on a future) and returns {refreshed_at, warnings[]}.
+    // The JSFX manual-rescan warning is always present per the design.
     server_->Post("/v1/refresh", [](const httplib::Request&, httplib::Response& res) {
+        RefreshResult r = refresh_now();
         nlohmann::json out;
-        out["error"] = "NOT_IMPLEMENTED";
-        out["message"] = "see refresh-protocol; implementation lands in PR 6";
-        res.status = 501;
+        out["refreshed_at"] = r.refreshed_at;
+        nlohmann::json warns = nlohmann::json::array();
+        for (const auto& w : r.warnings) warns.push_back(w);
+        out["warnings"] = std::move(warns);
+        res.status = 200;
         res.set_content(out.dump(), "application/json");
     });
 

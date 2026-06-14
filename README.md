@@ -102,6 +102,17 @@ Type each prompt into opencode Desktop. The agent should call the right `reaforg
 
 After all 3 prompts pass, fill in [`mvp-results.md`](mvp-results.md) with the timestamp of each artifact, the audio/behavior observed, and the PASS/FAIL verdict per prompt.
 
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| **JSFX does not show up in the FX browser** after the agent writes one | REAPER does not auto-rescan `Effects/` for new JSFX files. `reaper.RefreshFXList()` is not in the public REAPER SDK, so the extension cannot trigger a rescan programmatically. | Right-click in the FX browser → **Scan for new plug-ins** (or restart REAPER). The agent's `warnings[]` field in the `reaforge_refresh` response carries this hint. |
+| **Lua action does not appear in the Action List** after `reaforge_save_lua` with `register_action=true` | The Action List caches `Scripts/` entries. The extension calls `Main_OnCommand` for an SWS rescan command, but if SWS is not installed the rescan is skipped. | Run the script once manually via **Actions → Script: ReaForge/&lt;name&gt;** to force REAPER to register it. The script will then appear in the Action List on subsequent runs. |
+| **Bridge cannot reach the extension** (opencode shows "connection refused" or "503 REAPER_NOT_AVAILABLE") | Either the extension is not loaded, or the WSL host IP is unknown. | Check `%APPDATA%\REAPER\ReaForge\wsl-bridge.txt` exists and contains `<wsl-ip>:7800`. If missing, restart REAPER (the extension writes the file on `init()`). If the file is present but the bridge still fails, run `wsl hostname -I` from WSL to confirm the IP and verify the port (`netstat -an \| grep 7800` from Windows shows the listener). |
+| **503 REAPER_NOT_AVAILABLE on a tool call** after the extension was just loaded | The extension's function-pointer capture (`reaper.*` symbols) failed at load time. | Restart REAPER after loading the extension. The capture is best-effort; it does not retry. |
+| **"Overwrite refused" on a `reaforge_save_*` tool** | Safety default: `save_*` tools refuse to overwrite an existing file unless `overwrite=true` is passed. | Ask the agent to add `overwrite=true` explicitly. This is by design — see the safety decision in `proposal.md`. |
+| **Generated JSFX loads but produces silence** | LLM generated syntactically valid but semantically broken code. | Edit the file in REAPER's JSFX editor to fix the algorithm, or ask the agent to regenerate with more specific instructions. |
+
 ## Documentation
 
 | Doc | What it covers |

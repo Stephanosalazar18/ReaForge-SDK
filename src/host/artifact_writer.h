@@ -4,6 +4,14 @@
 #include <optional>
 #include <string>
 
+#if defined(_WIN32)
+// Forward-declare SetEnvironmentVariableA from kernel32 (linked by default).
+// We avoid pulling in <windows.h> because its headers have ordering issues
+// when included from C++ TUs that also use standard library types.
+extern "C" __declspec(dllimport) int __stdcall SetEnvironmentVariableA(
+    const char* lpName, const char* lpValue);
+#endif
+
 namespace reaforge {
 namespace host {
 
@@ -36,6 +44,20 @@ struct WriteResult {
 // Base dir = <REAPER resource>/. For PR 4 it's parameterized via env var
 // REAFORGE_FIXTURE_DIR so tests don't need REAPER.
 std::string resource_base_dir();
+
+// Cross-platform setenv wrapper. On POSIX we use setenv; on Windows we use the
+// Win32 SetEnvironmentVariable API instead of the CRT's _putenv_s. The CRT
+// _putenv_s in MSVC has historically been buggy when called repeatedly with the
+// same variable name (it sometimes fails with errno 3 or corrupts the env
+// block). The Win32 API is the canonical Windows way and is well-tested.
+inline void setenv_or_putenv(const char* name, const char* value, int overwrite) {
+#if defined(_WIN32)
+    (void)overwrite;
+    ::SetEnvironmentVariableA(name, value);
+#else
+    ::setenv(name, value, overwrite);
+#endif
+}
 
 // Writes <base>/Effects/ReaForge/<name>.jsfx atomically.
 WriteResult save_jsfx(const std::string& name,

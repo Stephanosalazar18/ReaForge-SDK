@@ -89,5 +89,20 @@ auto MainThreadQueue::submit(F&& fn, std::chrono::milliseconds timeout)
     return std::nullopt;
 }
 
+// Global convenience functions for the MVP host. In production, the queue is
+// drained by REAPER's main thread via a timer or hook. For the MVP, the HTTP
+// handler thread calls suspend-and-drain directly for runtime-reaper calls.
+MainThreadQueue& global_queue();
+
+inline void shutdown() {
+    global_queue().clear();
 }
+
+inline void start_polling() {
+    // In a real REAPER extension, this would register a timer to call
+    // drain_all() on the main thread. For the MVP, the HTTP handler thread
+    // drains synchronously when needed.
 }
+
+} // namespace host
+} // namespace reaforge

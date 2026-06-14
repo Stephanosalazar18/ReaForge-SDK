@@ -93,7 +93,7 @@ static void test_unknown_route_404() {
 
 static void test_save_jsfx_endpoint() {
     fs::path tmp = make_fixture("e_jsfx");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     HttpServer s;
     int port = start_and_get_port(s);
     if (port <= 0) return;
@@ -117,7 +117,7 @@ static void test_save_jsfx_endpoint() {
 
 static void test_save_lua_endpoint_no_register() {
     fs::path tmp = make_fixture("e_lua");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     HttpServer s;
     int port = start_and_get_port(s);
     if (port <= 0) return;
@@ -138,7 +138,7 @@ static void test_save_lua_endpoint_no_register() {
 
 static void test_save_lua_endpoint_with_register() {
     fs::path tmp = make_fixture("e_luareg");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     set_add_remove_reascript([](bool, int, const char*, bool) -> int { return 7777; });
     HttpServer s;
     int port = start_and_get_port(s);
@@ -161,7 +161,7 @@ static void test_save_lua_endpoint_with_register() {
 
 static void test_save_fx_chain_endpoint() {
     fs::path tmp = make_fixture("e_fxc");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     HttpServer s;
     int port = start_and_get_port(s);
     if (port <= 0) return;
@@ -179,7 +179,7 @@ static void test_save_fx_chain_endpoint() {
 
 static void test_dup_without_overwrite_409() {
     fs::path tmp = make_fixture("e_dup");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     HttpServer s;
     int port = start_and_get_port(s);
     if (port <= 0) return;
@@ -199,7 +199,7 @@ static void test_dup_without_overwrite_409() {
 
 static void test_bad_name_400() {
     fs::path tmp = make_fixture("e_bname");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     HttpServer s;
     int port = start_and_get_port(s);
     if (port <= 0) return;
@@ -323,7 +323,7 @@ static void test_refresh_module_with_mocks() {
 // PR 5: GET /v1/artifacts — missing folders tolerated, kind filter works.
 static void test_artifacts_endpoint() {
     fs::path tmp = make_fixture("e_art");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     // Empty fixture: all 3 folders missing → empty list, no error.
     {
         HttpServer s;

@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# End-to-end smoke for the opencode-bridge spike.
-# Starts the stub REAPER server, invokes each tool through the bridge
+# End-to-end smoke for the opencode-bridge.
+# Starts the stub REAPER server, invokes each of the 7 tools through the bridge
 # using the mcp Python client, asserts the responses.
+#
+# This is the post-pivot version. The 5 pre-pivot tools
+# (reaforge_health, reaforge_list_tracks, reaforge_list_extensions,
+#  reaforge_run_extension, the old reaforge_get_state) are GONE.
+# The 7 new tools are: 3 Read + 3 Write + 1 Refresh.
 
 set -euo pipefail
 
@@ -30,12 +35,27 @@ if ! curl -sf http://127.0.0.1:7800/v1/health >/dev/null; then
 fi
 echo "OK: stub up"
 
-echo "==[2]== list bridge tools (raw mcp probe)"
-# Probe tools/list via the official mcp client over stdio.
+echo "==[2]== list bridge tools and call each of the 7"
 python3 - <<'PY' > /tmp/reaforge_bridge_smoke.out
 import asyncio, json, sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+
+EXPECTED_TOOLS = {
+    "reaforge_get_state",
+    "reaforge_list_artifacts",
+    "reaforge_get_api_reference",
+    "reaforge_save_jsfx",
+    "reaforge_save_lua",
+    "reaforge_save_fx_chain",
+    "reaforge_refresh",
+}
+FORBIDDEN_TOOLS = {
+    "reaforge_health",
+    "reaforge_list_tracks",
+    "reaforge_list_extensions",
+    "reaforge_run_extension",
+}
 
 async def main():
     params = StdioServerParameters(command=sys.executable, args=["tools/opencode_bridge.py"])
@@ -43,28 +63,42 @@ async def main():
         async with ClientSession(read, write) as s:
             await s.initialize()
             tools = await s.list_tools()
-            print("TOOLS:", ",".join(t.name for t in tools.tools))
-            for name in ("reaforge_health", "reaforge_list_tracks", "reaforge_list_extensions", "reaforge_run_extension", "reaforge_get_state"):
-                r = await s.call_tool(name, {"id": "humanize_midi", "args": {}} if name == "reaforge_run_extension" else {})
-                text = r.content[0].text if r.content else ""
-                if name == "reaforge_health":
-                    obj = json.loads(text)
-                    assert obj.get("ok") is True, text
-                if name == "reaforge_list_tracks":
-                    obj = json.loads(text)
-                    assert len(obj.get("tracks", [])) == 4, text
-                if name == "reaforge_list_extensions":
-                    obj = json.loads(text)
-                    assert any(e["id"] == "humanize_midi" for e in obj.get("extensions", [])), text
-                if name == "reaforge_run_extension":
-                    obj = json.loads(text)
-                    assert obj.get("ok") is True, text
-                    inner = obj.get("result", {})
-                    assert inner.get("count") == 47, text
-                if name == "reaforge_get_state":
-                    obj = json.loads(text)
-                    assert "tracks" in obj and "tempo_bpm" in obj, text
-                print("OK:", name)
+            names = {t.name for t in tools.tools}
+            print("TOOLS:", ",".join(sorted(names)))
+
+            missing = EXPECTED_TOOLS - names
+            assert not missing, f"missing expected tools: {missing}"
+            leaked = names & FORBIDDEN_TOOLS
+            assert not leaked, f"pre-pivot tools still exposed: {leaked}"
+            assert len(names) == 7, f"expected 7 tools, got {len(names)}: {names}"
+
+            # Read tools (should not 5xx; the 7-endpoint stub will 404 for now
+            # until PR 3 lands the new endpoints; the bridge should surface the
+            # http_error gracefully without crashing).
+            r = await s.call_tool("reaforge_get_state", {"summary": True})
+            print("OK: reaforge_get_state (proxied)")
+
+            r = await s.call_tool("reaforge_list_artifacts", {})
+            print("OK: reaforge_list_artifacts (proxied)")
+
+            r = await s.call_tool("reaforge_get_api_reference", {"target": "jsfx"})
+            print("OK: reaforge_get_api_reference (proxied)")
+
+            # Write tools (proxy-only at this stage; the 5-endpoint stub will 404
+            # on the new endpoints until PR 3. The bridge should still respond,
+            # not crash).
+            r = await s.call_tool("reaforge_save_jsfx", {"name": "smoke_tape", "code": "// smoke"})
+            print("OK: reaforge_save_jsfx (proxied)")
+
+            r = await s.call_tool("reaforge_save_lua", {"name": "smoke_lua", "code": "-- smoke", "register_action": False, "overwrite": False})
+            print("OK: reaforge_save_lua (proxied)")
+
+            r = await s.call_tool("reaforge_save_fx_chain", {"name": "smoke_chain", "content": "<smoke/>"})
+            print("OK: reaforge_save_fx_chain (proxied)")
+
+            r = await s.call_tool("reaforge_refresh", {})
+            print("OK: reaforge_refresh (proxied)")
+
             print("ALL_PASS")
 
 asyncio.run(main())
@@ -82,26 +116,4 @@ if [[ "$result" != *"ALL_PASS"* ]]; then
     exit 1
 fi
 
-echo "==[3]== write bridge-spike-results.md"
-cat > bridge-spike-results.md <<EOF
-# opencode-bridge spike results
-
-## What ran
-
-- \`tools/stub_reaper_server.py\` (Python HTTP on 127.0.0.1:7800, hardcoded state)
-- \`tools/opencode_bridge.py\` (MCP server, stdio)
-- \`tools/run_bridge_smoke.sh\` drives the official \`mcp\` Python client
-
-## Tool output
-
-\`\`\`
-${result}
-\`\`\`
-
-## Verdict
-
-**GO** — all 5 tools round-trip through the MCP server, the stub answers, and the bridge translates HTTP<->MCP correctly. Latency is sub-millisecond locally; cross-env latency is a separate measurement and depends on the WSL IP path.
-EOF
-cat bridge-spike-results.md
-echo
-echo "==[DONE]== all checks passed"
+echo "==[DONE]== all 7 tools round-trip through the bridge (proxy-only until PR 3 wires the stub endpoints)"

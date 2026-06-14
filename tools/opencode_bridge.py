@@ -51,41 +51,171 @@ def make_server() -> Server:
 
     @server.list_tools()
     async def list_tools() -> list[Tool]:
+        # MVP tool surface is 7 tools: 3 Read + 3 Write + 1 Refresh.
+        # The pre-pivot 5-tool surface (health, list_tracks, list_extensions,
+        # run_extension, old get_state) was removed in the agentic pivot.
+        # See openspec/changes/2026-06-07-reaforge-agentic-mvp/specs/bridge-tools-v2/spec.md
         return [
             Tool(
-                name="reaforge_health",
-                description="Check that the ReaForge extension is reachable and report its version.",
-                inputSchema={"type": "object", "properties": {}},
-            ),
-            Tool(
                 name="reaforge_get_state",
-                description="Return the full REAPER project state: tracks, tempo, cursor, and the extension registry.",
-                inputSchema={"type": "object", "properties": {}},
-            ),
-            Tool(
-                name="reaforge_list_tracks",
-                description="List the tracks in the current project, with volume, pan, and mute status.",
-                inputSchema={"type": "object", "properties": {}},
-            ),
-            Tool(
-                name="reaforge_list_extensions",
-                description="List the ReaForge extensions currently loaded.",
-                inputSchema={"type": "object", "properties": {}},
-            ),
-            Tool(
-                name="reaforge_run_extension",
-                description="Invoke a ReaForge extension by id with the given JSON args.",
+                description=(
+                    "Return a compact projection of the current REAPER project: "
+                    "project name, sample rate, BPM, per-track FX count and names, "
+                    "and selected item count. Pass summary=true to omit per-track "
+                    "fx_names for a smaller payload."
+                ),
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "id": {"type": "string", "description": "Extension id (e.g. 'humanize_midi')"},
-                        "args": {
-                            "type": "object",
-                            "description": "JSON args to pass to the extension",
-                            "additionalProperties": True,
+                        "summary": {
+                            "type": "boolean",
+                            "description": "When true, omit per-track fx_names; only counts are returned.",
+                            "default": False,
                         },
                     },
-                    "required": ["id"],
+                },
+            ),
+            Tool(
+                name="reaforge_list_artifacts",
+                description=(
+                    "List REAPER-native artifacts the agent can edit, grouped by "
+                    "kind: 'jsfx' (Effects/ReaForge/*.jsfx), 'lua' "
+                    "(Scripts/ReaForge/*.lua), 'fx_chain' (FXChains/ReaForge/*.RfxChain). "
+                    "Omit kind to merge all three folders. A missing folder returns "
+                    "an empty list for that kind (never an error)."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "enum": ["jsfx", "lua", "fx_chain"],
+                            "description": "Filter to one folder. Omit to list all three.",
+                        },
+                    },
+                },
+            ),
+            Tool(
+                name="reaforge_get_api_reference",
+                description=(
+                    "Return the offline-bundled API reference markdown for one of "
+                    "three targets: 'jsfx' (JSFX cheatsheet), 'reascript_lua' (REAPER "
+                    "Lua API cheatsheet), 'fx_chain_format' (RfxChain XML format). "
+                    "Use this to ground code generation — the payloads are static, "
+                    "no network fetch."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "target": {
+                            "type": "string",
+                            "enum": ["jsfx", "reascript_lua", "fx_chain_format"],
+                            "description": "Which API reference markdown to return.",
+                        },
+                    },
+                    "required": ["target"],
+                },
+            ),
+            Tool(
+                name="reaforge_save_jsfx",
+                description=(
+                    "Write a JSFX file into <REAPER>/Effects/ReaForge/<name>.jsfx. "
+                    "Refuses to overwrite an existing file unless overwrite=true. "
+                    "The extension creates the ReaForge/ subfolder on demand."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Base name without extension (regex ^[A-Za-z0-9_-]{1,64}$).",
+                        },
+                        "code": {
+                            "type": "string",
+                            "description": "JSFX source code (full file contents).",
+                        },
+                        "overwrite": {
+                            "type": "boolean",
+                            "description": "Set true to replace an existing file. Defaults to false.",
+                            "default": False,
+                        },
+                    },
+                    "required": ["name", "code"],
+                },
+            ),
+            Tool(
+                name="reaforge_save_lua",
+                description=(
+                    "Write a ReaScript Lua file into <REAPER>/Scripts/ReaForge/<name>.lua. "
+                    "If register_action=true (opt-in), the extension also calls "
+                    "reaper.AddRemoveReaScript to expose the script as a REAPER action "
+                    "and returns the new action_id. Refuses to overwrite unless "
+                    "overwrite=true."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Base name without extension (regex ^[A-Za-z0-9_-]{1,64}$).",
+                        },
+                        "code": {
+                            "type": "string",
+                            "description": "Lua source code (full file contents).",
+                        },
+                        "register_action": {
+                            "type": "boolean",
+                            "description": "Opt-in: register the script as a REAPER action. Defaults to false.",
+                            "default": False,
+                        },
+                        "overwrite": {
+                            "type": "boolean",
+                            "description": "Set true to replace an existing file. Defaults to false.",
+                            "default": False,
+                        },
+                    },
+                    "required": ["name", "code"],
+                },
+            ),
+            Tool(
+                name="reaforge_save_fx_chain",
+                description=(
+                    "Write a REAPER FX chain (.RfxChain) into "
+                    "<REAPER>/FXChains/ReaForge/<name>.RfxChain. "
+                    "Refuses to overwrite unless overwrite=true."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Base name without extension (regex ^[A-Za-z0-9_-]{1,64}$).",
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": "RfxChain file contents (REAPER's chain DSL).",
+                        },
+                        "overwrite": {
+                            "type": "boolean",
+                            "description": "Set true to replace an existing file. Defaults to false.",
+                            "default": False,
+                        },
+                    },
+                    "required": ["name", "content"],
+                },
+            ),
+            Tool(
+                name="reaforge_refresh",
+                description=(
+                    "Ask the REAPER extension to rescan its FX list and Action List "
+                    "so the newly-written artifacts are immediately visible in the REAPER UI. "
+                    "Idempotent. Returns the timestamp of the refresh and any warnings "
+                    "(e.g. JSFX rescan requires manual 'Scan for new plug-ins')."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
                 },
             ),
         ]
@@ -93,20 +223,42 @@ def make_server() -> Server:
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         try:
-            if name == "reaforge_health":
-                r = client.get("/v1/health")
-            elif name == "reaforge_get_state":
-                r = client.get("/v1/state")
-            elif name == "reaforge_list_tracks":
-                r = client.get("/v1/tracks")
-            elif name == "reaforge_list_extensions":
-                r = client.get("/v1/extensions")
-            elif name == "reaforge_run_extension":
-                ext_id = arguments.get("id")
-                if not ext_id:
-                    return [TextContent(type="text", text=json.dumps({"error": "missing id"}))]
-                args = arguments.get("args", {})
-                r = client.post(f"/v1/extensions/{ext_id}/run", json=args)
+            if name == "reaforge_get_state":
+                summary = bool(arguments.get("summary", False))
+                r = client.get("/v1/state", params={"summary": "true" if summary else "false"})
+            elif name == "reaforge_list_artifacts":
+                kind = arguments.get("kind")
+                params = {"kind": kind} if kind else None
+                r = client.get("/v1/artifacts", params=params)
+            elif name == "reaforge_get_api_reference":
+                target = arguments.get("target")
+                if not target:
+                    return [TextContent(type="text", text=json.dumps({"error": "INVALID_TARGET", "message": "target is required", "target": target}))]
+                r = client.get("/v1/api-reference", params={"target": target})
+            elif name == "reaforge_save_jsfx":
+                payload = {
+                    "name": arguments.get("name"),
+                    "code": arguments.get("code"),
+                    "overwrite": bool(arguments.get("overwrite", False)),
+                }
+                r = client.post("/v1/save/jsfx", json=payload)
+            elif name == "reaforge_save_lua":
+                payload = {
+                    "name": arguments.get("name"),
+                    "code": arguments.get("code"),
+                    "register_action": bool(arguments.get("register_action", False)),
+                    "overwrite": bool(arguments.get("overwrite", False)),
+                }
+                r = client.post("/v1/save/lua", json=payload)
+            elif name == "reaforge_save_fx_chain":
+                payload = {
+                    "name": arguments.get("name"),
+                    "content": arguments.get("content"),
+                    "overwrite": bool(arguments.get("overwrite", False)),
+                }
+                r = client.post("/v1/save/fx-chain", json=payload)
+            elif name == "reaforge_refresh":
+                r = client.post("/v1/refresh", json={})
             else:
                 return [TextContent(type="text", text=json.dumps({"error": "unknown tool", "name": name}))]
             r.raise_for_status()

@@ -1,6 +1,7 @@
 // Test http_server routing + JSON envelope. Boots a real httplib on 127.0.0.1.
 #include "artifact_writer.h"
 #include "http_server.h"
+#include "project_reader.h"
 
 #include "httplib.h"
 #include <nlohmann/json.hpp>
@@ -30,8 +31,12 @@ static void check(bool cond, const char* what) {
 }
 
 static fs::path make_fixture(const std::string& tag) {
+    // Use a monotonic counter so each call gets a unique directory even when
+    // std::rand() returns the same value across calls in the same process.
+    static std::atomic<int> seq{0};
+    int n = seq.fetch_add(1);
     fs::path base = fs::temp_directory_path() /
-                    ("reaforge_http_" + tag + "_" + std::to_string(std::rand()));
+                    ("reaforge_http_" + tag + "_" + std::to_string(n));
     fs::remove_all(base);
     fs::create_directories(base);
     return base;
@@ -239,6 +244,126 @@ static void test_refresh_stub_501() {
     s.stop();
 }
 
+// PR 5: GET /v1/artifacts — missing folders tolerated, kind filter works.
+static void test_artifacts_endpoint() {
+    fs::path tmp = make_fixture("e_art");
+    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    // Empty fixture: all 3 folders missing → empty list, no error.
+    {
+        HttpServer s;
+        int port = start_and_get_port(s);
+        if (port <= 0) return;
+        std::this_thread::sleep_for(50ms);
+        httplib::Client c("127.0.0.1", port);
+        c.set_connection_timeout(1, 0);
+        auto res = c.Get("/v1/artifacts");
+        check(res && res->status == 200, "GET /v1/artifacts empty → 200");
+        if (res && res->status == 200) {
+            auto j = parse(res->body);
+            check(j.contains("artifacts") && j["artifacts"].is_array() && j["artifacts"].empty(),
+                  "empty artifacts list");
+        }
+        s.stop();
+    }
+    // Populate one folder, query with kind filter.
+    {
+        fs::create_directories(tmp / "Effects" / "ReaForge");
+        fs::create_directories(tmp / "Scripts" / "ReaForge");
+        fs::create_directories(tmp / "FXChains" / "ReaForge");
+        std::ofstream a(tmp / "Effects" / "ReaForge" / "tap.jsfx", std::ios::binary);
+        a << "desc:tap\n";
+        a.close();
+        std::ofstream b(tmp / "Effects" / "ReaForge" / "clip.jsfx", std::ios::binary);
+        b << "desc:clip\n";
+        b.close();
+        std::ofstream c_lua(tmp / "Scripts" / "ReaForge" / "doubler.lua", std::ios::binary);
+        c_lua << "-- y\n";
+        c_lua.close();
+    }
+    {
+        HttpServer s;
+        int port = start_and_get_port(s);
+        if (port <= 0) return;
+        std::this_thread::sleep_for(50ms);
+        httplib::Client c("127.0.0.1", port);
+        c.set_connection_timeout(1, 0);
+        // kind=jsfx → 2 entries
+        auto res = c.Get("/v1/artifacts?kind=jsfx");
+        check(res && res->status == 200, "GET /v1/artifacts?kind=jsfx → 200");
+        if (res && res->status == 200) {
+            auto j = parse(res->body);
+            check(j["artifacts"].size() == 2, "kind=jsfx returns 2");
+            bool all_jsfx = std::all_of(j["artifacts"].begin(), j["artifacts"].end(),
+                [](const nlohmann::json& e) { return e["kind"] == "jsfx"; });
+            check(all_jsfx, "all entries kind=jsfx");
+        }
+        // kind=lua → 1 entry
+        auto res2 = c.Get("/v1/artifacts?kind=lua");
+        check(res2 && res2->status == 200, "GET /v1/artifacts?kind=lua → 200");
+        if (res2 && res2->status == 200) {
+            auto j = parse(res2->body);
+            check(j["artifacts"].size() == 1, "kind=lua returns 1");
+        }
+        // no kind → 3 entries (2 jsfx + 1 lua; FXChains missing → tolerated)
+        auto res3 = c.Get("/v1/artifacts");
+        check(res3 && res3->status == 200, "GET /v1/artifacts → 200");
+        if (res3 && res3->status == 200) {
+            auto j = parse(res3->body);
+            check(j["artifacts"].size() == 3, "merged list returns 3");
+        }
+        // invalid kind → 400
+        auto res4 = c.Get("/v1/artifacts?kind=python");
+        check(res4 && res4->status == 400, "kind=python → 400");
+        if (res4 && res4->status == 400) {
+            auto j = parse(res4->body);
+            check(j["error"] == "INVALID_KIND", "error code INVALID_KIND");
+        }
+        s.stop();
+    }
+    fs::remove_all(tmp);
+}
+
+// PR 5: GET /v1/api-reference — embedded payload, valid + invalid targets.
+static void test_api_reference_endpoint() {
+    HttpServer s;
+    int port = start_and_get_port(s);
+    if (port <= 0) return;
+    std::this_thread::sleep_for(50ms);
+    httplib::Client c("127.0.0.1", port);
+    c.set_connection_timeout(1, 0);
+    for (const std::string& target : {"jsfx", "reascript_lua", "fx_chain_format"}) {
+        std::string path = std::string("/v1/api-reference?target=") + target;
+        auto res = c.Get(path);
+        check(res && res->status == 200, ("GET /v1/api-reference?target=" + target + " → 200").c_str());
+        if (res && res->status == 200) {
+            auto j = parse(res->body);
+            check(j["target"] == target, "target echoed");
+            check(j["reference"].is_string() && !j["reference"].get<std::string>().empty(),
+                  "reference is non-empty string");
+        }
+    }
+    // missing target → 400 MISSING_TARGET
+    {
+        auto res = c.Get("/v1/api-reference");
+        check(res && res->status == 400, "missing target → 400");
+        if (res && res->status == 400) {
+            auto j = parse(res->body);
+            check(j["error"] == "MISSING_TARGET", "error code MISSING_TARGET");
+        }
+    }
+    // invalid target → 400 INVALID_TARGET
+    {
+        auto res = c.Get("/v1/api-reference?target=python");
+        check(res && res->status == 400, "invalid target → 400");
+        if (res && res->status == 400) {
+            auto j = parse(res->body);
+            check(j["error"] == "INVALID_TARGET", "error code INVALID_TARGET");
+            check(j.contains("target") && j["target"] == "python", "target echoed in error");
+        }
+    }
+    s.stop();
+}
+
 int main() {
     std::srand(static_cast<unsigned>(std::time(nullptr)));
     std::fprintf(stderr, "test_http_server: starting\n");
@@ -252,6 +377,8 @@ int main() {
     test_bad_name_400();
     test_bad_json_400();
     test_refresh_stub_501();
+    test_artifacts_endpoint();
+    test_api_reference_endpoint();
     std::fprintf(stderr, "test_http_server: %s\n", rc_ == 0 ? "PASS" : "FAIL");
     return rc_;
 }

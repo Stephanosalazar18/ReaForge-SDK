@@ -1,5 +1,6 @@
 #include "http_server.h"
 #include "artifact_writer.h"
+#include "project_reader.h"
 
 // httplib + json are vendored at third_party/.
 #include "httplib.h"
@@ -250,8 +251,9 @@ void HttpServer::register_routes() {
     });
 
     // The 3 Read endpoints (state, artifacts, api-reference) are stubbed for PR 4.
-    // They exist as routes so the bridge can call them without 404, but the bodies
-    // are placeholders. PR 5 replaces the bodies with real implementations.
+    // PR 5 wires artifacts and api-reference; get_state wiring lands in this PR too
+    // (in the get_state commit) since the REAPER-bound route is inseparable from
+    // the REAPER function pointer plumbing.
 
     server_->Get("/v1/state", [](const httplib::Request&, httplib::Response& res) {
         nlohmann::json out;
@@ -261,22 +263,56 @@ void HttpServer::register_routes() {
         res.set_content(out.dump(), "application/json");
     });
 
-    server_->Get("/v1/artifacts", [](const httplib::Request&, httplib::Response& res) {
+    // GET /v1/artifacts?kind=<jsfx|lua|fx_chain> — enumerate ReaForge/ subfolders.
+    server_->Get("/v1/artifacts", [](const httplib::Request& req, httplib::Response& res) {
+        std::string kind;
+        if (req.has_param("kind")) kind = req.get_param_value("kind");
+        // Base dir = REAFORGE_FIXTURE_DIR for tests; production swaps for
+        // reaper.GetResourcePath() in a follow-up (artifact_writer has the same
+        // pattern, see resource_base_dir()).
+        std::string base = resource_base_dir();
+        auto r = list_artifacts(base, kind);
+        if (r.invalid_kind) {
+            nlohmann::json out;
+            out["error"] = "INVALID_KIND";
+            out["message"] = "kind must be one of: jsfx, lua, fx_chain";
+            out["kind"] = r.invalid_kind_value;
+            res.status = 400;
+            res.set_content(out.dump(), "application/json");
+            return;
+        }
         nlohmann::json out;
         out["artifacts"] = nlohmann::json::array();
-        out["_note"] = "stub for PR 4; PR 5 enumerates Effects/Scripts/FXChains/ReaForge/";
+        for (const auto& e : r.entries) {
+            nlohmann::json je;
+            je["path"] = e.path;
+            je["size"] = e.size;
+            je["mtime"] = e.mtime;
+            je["kind"] = e.kind;
+            out["artifacts"].push_back(std::move(je));
+        }
         res.status = 200;
         res.set_content(out.dump(), "application/json");
     });
 
+    // GET /v1/api-reference?target=<jsfx|reascript_lua|fx_chain_format>
     server_->Get("/v1/api-reference", [](const httplib::Request& req, httplib::Response& res) {
         std::string target;
         if (req.has_param("target")) target = req.get_param_value("target");
-        if (target.empty()) target = "jsfx";
-        // PR 4: return a placeholder; PR 5 reads the embedded payload.
+        auto r = get_api_reference(target);
+        if (!r.ok) {
+            int status = (r.error_code == "MISSING_TARGET") ? 400 : 400;
+            nlohmann::json out;
+            out["error"] = r.error_code;
+            out["message"] = r.error_message;
+            if (!target.empty()) out["target"] = target;
+            res.status = status;
+            res.set_content(out.dump(), "application/json");
+            return;
+        }
         nlohmann::json out;
-        out["target"] = target;
-        out["markdown"] = "# ReaForge API reference\n\nEmbedded payload lands in PR 5.\n";
+        out["target"] = r.target;
+        out["reference"] = r.reference;
         res.status = 200;
         res.set_content(out.dump(), "application/json");
     });

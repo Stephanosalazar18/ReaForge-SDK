@@ -38,11 +38,12 @@ runtime_sources = [
     'runtime/jsfx_runtime.cpp',
 ]
 
-# Greenfield PR 4 + PR 5 sources — pure C++17, no REAPER.
+# Greenfield PR 4 + PR 5 + PR 6 sources — pure C++17, no REAPER.
 greenfield_sources = [
     'http_server.cpp',
     'artifact_writer.cpp',
     'project_reader.cpp',
+    'refresh.cpp',
     'main_thread_queue.cpp',
 ]
 

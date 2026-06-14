@@ -2,6 +2,7 @@
 #include "artifact_writer.h"
 #include "http_server.h"
 #include "project_reader.h"
+#include "refresh.h"
 
 #include "httplib.h"
 #include <nlohmann/json.hpp>
@@ -232,7 +233,12 @@ static void test_bad_json_400() {
     s.stop();
 }
 
-static void test_refresh_stub_501() {
+// PR 6: POST /v1/refresh — returns 200 with {refreshed_at, warnings[]}.
+// The function pointer slots are intentionally null in this test (REAPER is
+// not loaded); refresh_now() should still return a valid timestamp and the
+// JSFX manual-rescan warning per the design.
+static void test_refresh_endpoint() {
+    reset_refresh_fns();
     HttpServer s;
     int port = start_and_get_port(s);
     if (port <= 0) return;
@@ -240,8 +246,78 @@ static void test_refresh_stub_501() {
     httplib::Client c("127.0.0.1", port);
     c.set_connection_timeout(1, 0);
     auto res = c.Post("/v1/refresh", "{}", "application/json");
-    check(res && res->status == 501, "POST /v1/refresh → 501 in PR 4");
+    check(res && res->status == 200, "POST /v1/refresh → 200");
+    if (res && res->status == 200) {
+        auto j = parse(res->body);
+        check(j.contains("refreshed_at") && j["refreshed_at"].is_string(),
+              "response has refreshed_at (string)");
+        std::string ts = j["refreshed_at"].get<std::string>();
+        // Loose ISO 8601 check: starts with YYYY-MM-DDT and ends with Z,
+        // and has millisecond precision (the '.' before 'Z').
+        check(ts.size() >= 20 && ts[4] == '-' && ts[7] == '-' && ts[10] == 'T'
+                  && ts.back() == 'Z' && ts.find('.') != std::string::npos,
+              "refreshed_at looks like ISO 8601 UTC with millis");
+        check(j.contains("warnings") && j["warnings"].is_array(),
+              "response has warnings (array)");
+        bool found_jsfx_warning = false;
+        for (const auto& w : j["warnings"]) {
+            if (w.is_string() && w.get<std::string>().find("JSFX") != std::string::npos) {
+                found_jsfx_warning = true;
+                break;
+            }
+        }
+        check(found_jsfx_warning,
+              "warnings[] includes the JSFX manual-rescan message");
+    }
     s.stop();
+    reset_refresh_fns();
+}
+
+// PR 6: POST /v1/refresh with mocked function pointers — verifies that
+// refresh_now() calls Main_OnCommand with the SWS refresh id when SWS is
+// present, and skips the call when SWS is missing. Also exercises the
+// module API directly so we don't depend on the HTTP layer for the
+// REAPER-bound assertion.
+static void test_refresh_module_with_mocks() {
+    using namespace reaforge::host;
+    reset_refresh_fns();
+
+    int seen_cmd = 0;
+    static int* g_seen = nullptr;
+    g_seen = &seen_cmd;
+    auto moc_rec = [](int command, int /*flag*/) { if (g_seen) *g_seen = command; };
+    auto ncl_found = [](const char* name) -> int {
+        // Pretend SWS is installed: return a fake id for the refresh command.
+        if (std::strcmp(name, "_S&M_REFRESH") == 0) return 42425;
+        return 0;
+    };
+    set_refresh_fns(moc_rec, ncl_found);
+    auto r1 = refresh_now();
+    check(seen_cmd == 42425, "Main_OnCommand called with SWS refresh id");
+    check(!r1.warnings.empty(), "warnings[] non-empty (JSFX always present)");
+
+    // SWS missing → ncl returns 0 → no Main_OnCommand call, SWS warning added.
+    int count_before = seen_cmd;
+    auto ncl_missing = [](const char* /*name*/) -> int { return 0; };
+    auto moc_idle = [](int /*command*/, int /*flag*/) {};
+    set_refresh_fns(moc_idle, ncl_missing);
+    auto r2 = refresh_now();
+    check(seen_cmd == count_before, "Main_OnCommand NOT called when SWS missing");
+    bool has_sws_warning = false;
+    for (const auto& w : r2.warnings) {
+        if (w.find("SWS") != std::string::npos) { has_sws_warning = true; break; }
+    }
+    check(has_sws_warning, "warnings[] includes SWS-missing message");
+
+    // Null function pointers (cpp-unit baseline) → JSFX warning only.
+    reset_refresh_fns();
+    auto r3 = refresh_now();
+    check(r3.warnings.size() >= 1, "null pointers: at least JSFX warning");
+    bool has_jsfx = false;
+    for (const auto& w : r3.warnings) {
+        if (w.find("JSFX") != std::string::npos) { has_jsfx = true; break; }
+    }
+    check(has_jsfx, "null pointers: JSFX warning still present");
 }
 
 // PR 5: GET /v1/artifacts — missing folders tolerated, kind filter works.
@@ -376,7 +452,8 @@ int main() {
     test_dup_without_overwrite_409();
     test_bad_name_400();
     test_bad_json_400();
-    test_refresh_stub_501();
+    test_refresh_endpoint();
+    test_refresh_module_with_mocks();
     test_artifacts_endpoint();
     test_api_reference_endpoint();
     std::fprintf(stderr, "test_http_server: %s\n", rc_ == 0 ? "PASS" : "FAIL");

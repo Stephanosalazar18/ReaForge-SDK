@@ -36,7 +36,8 @@ echo "OK: stub up (1 readiness probe + 7 post-pivot endpoints)"
 
 echo "==[2]== call each of the 7 tools through the bridge and assert 2xx"
 python3 - <<'PY' > /tmp/reaforge_bridge_smoke.out
-import asyncio, json, sys
+import asyncio, json, sys, random
+rand = random.randint(0, 999999)
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -96,19 +97,19 @@ async def main():
             results.append(("reaforge_get_api_reference", obj))
             print("OK: reaforge_get_api_reference -> 2xx (embedded markdown)")
 
-            r = await s.call_tool("reaforge_save_jsfx", {"name": "smoke_tape", "code": "// smoke"})
+            r = await s.call_tool("reaforge_save_jsfx", {"name": "" + str(rand) + "_tape", "code": "// smoke"})
             obj = json.loads(r.content[0].text)
             assert "path" in obj and "bytes_written" in obj, obj
             results.append(("reaforge_save_jsfx", obj))
             print("OK: reaforge_save_jsfx -> 2xx (wrote to fixture)")
 
-            r = await s.call_tool("reaforge_save_lua", {"name": "smoke_lua", "code": "-- smoke", "register_action": False, "overwrite": False})
+            r = await s.call_tool("reaforge_save_lua", {"name": "" + str(rand) + "_lua", "code": "-- smoke", "register_action": False, "overwrite": False})
             obj = json.loads(r.content[0].text)
             assert "path" in obj, obj
             results.append(("reaforge_save_lua", obj))
             print("OK: reaforge_save_lua -> 2xx (wrote to fixture)")
 
-            r = await s.call_tool("reaforge_save_fx_chain", {"name": "smoke_chain", "content": "<smoke/>"})
+            r = await s.call_tool("reaforge_save_fx_chain", {"name": "" + str(rand) + "_chain", "content": "<smoke/>"})
             obj = json.loads(r.content[0].text)
             assert "path" in obj and "bytes_written" in obj, obj
             results.append(("reaforge_save_fx_chain", obj))

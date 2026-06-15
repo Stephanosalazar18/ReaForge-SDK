@@ -187,8 +187,12 @@ def make_server() -> Server:
             Tool(
                 name="reaforge_save_fx_chain",
                 description=(
-                    "Write a REAPER FX chain (.RfxChain) into "
-                    "<REAPER>/FXChains/ReaForge/<name>.RfxChain. "
+                    "⚠️ DO NOT generate FX chain content directly. REAPER uses a "
+                    "proprietary binary format, NOT XML. Use the Lua chain builder "
+                    "template instead (see reaforge_get_api_reference for "
+                    "'fx_chain-primitives/chain-builder-template'). "
+                    "Only call this tool with content that was produced by "
+                    "reaper.GetTrackFXChain() inside a REAPER Lua script. "
                     "Refuses to overwrite unless overwrite=true."
                 ),
                 inputSchema={

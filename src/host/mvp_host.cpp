@@ -58,6 +58,11 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(
     typedef void (*MOC_fn)(int, int);
     auto moc = capture<MOC_fn>(getfunc, "Main_OnCommand");
 
+    // GetResourcePath(char* buf, int bufsz) -> void
+    // Returns REAPER's resource directory (e.g. %APPDATA%\REAPER\).
+    typedef void (*GRP_fn)(char*, int);
+    auto grp = capture<GRP_fn>(getfunc, "GetResourcePath");
+
     // ---- Inject into greenfield modules ----
     if (aras) {
         reaforge::host::set_add_remove_reascript(
@@ -69,6 +74,14 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(
     if (moc) {
         reaforge::host::set_main_on_command(
             [moc](int cmd, int flag) { moc(cmd, flag); });
+    }
+
+    // Set the REAPER resource path so artifacts land in <resource>/Effects/ReaForge/
+    // instead of /tmp/reaforge_default_resource/.
+    if (grp) {
+        char buf[2048] = {};
+        grp(buf, sizeof(buf) - 1);
+        reaforge::host::set_resource_path_from_reaper(buf);
     }
 
     // ---- Start the HTTP server ----

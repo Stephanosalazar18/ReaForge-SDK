@@ -42,8 +42,13 @@ struct WriteResult {
 };
 
 // Base dir = <REAPER resource>/. For PR 4 it's parameterized via env var
-// REAFORGE_FIXTURE_DIR so tests don't need REAPER.
+// REAFORGE_FIXTURE_DIR so tests don't need REAPER. In production (mvp_host.cpp),
+// set_resource_path_from_reaper() is called with reaper.GetResourcePath().
 std::string resource_base_dir();
+
+// Called by mvp_host.cpp at REAPER init with the result of GetResourcePath().
+// Once set, all save/list operations use this path. For tests, leave unset.
+void set_resource_path_from_reaper(const std::string& path);
 
 // Cross-platform setenv wrapper. On POSIX we use setenv; on Windows we use the
 // Win32 SetEnvironmentVariable API instead of the CRT's _putenv_s. The CRT

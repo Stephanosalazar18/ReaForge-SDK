@@ -22,6 +22,10 @@ AddRemoveReaScript_fn g_add_remove_reascript;
 std::mutex g_fn_mtx;
 bool g_fn_initialized = false;
 
+// Global resource path — set by mvp_host.cpp from reaper.GetResourcePath().
+// When non-empty, resource_base_dir() uses this instead of the env var.
+std::string g_resource_path;
+
 void ensure_default_fn() {
     std::lock_guard<std::mutex> lock(g_fn_mtx);
     if (!g_fn_initialized) {
@@ -148,10 +152,18 @@ void reset_add_remove_reascript() {
 }
 
 std::string resource_base_dir() {
+    // 1. Check the global resource path (set by mvp_host.cpp from REAPER API).
+    if (!g_resource_path.empty()) return g_resource_path;
+    // 2. Check the env var (for tests without REAPER).
     const char* env = std::getenv("REAFORGE_FIXTURE_DIR");
     if (env && *env) return env;
-    // Fallback for production (PR 5+ will swap this for reaper.GetResourcePath()).
+    // 3. Last resort fallback.
     return "/tmp/reaforge_default_resource";
+}
+
+void set_resource_path_from_reaper(const std::string& path) {
+    g_resource_path = path;
+    std::fprintf(stderr, "reaforge: resource path set to %s\n", path.c_str());
 }
 
 WriteResult save_jsfx(const std::string& name,

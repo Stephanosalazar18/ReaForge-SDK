@@ -98,7 +98,10 @@ if have_reaper_sdk and host_machine.system() == 'windows'
         'mvp_host.cpp',
         greenfield_sources,
         include_directories : [common_inc, reaper_inc],
-        dependencies : [thread_dep, ws2_dep],
+        dependencies : [ws2_dep],
+        link_args : ['-static-libgcc', '-static-libstdc++',
+                     '-Wl,-Bstatic', '-lwinpthread', '-Wl,-Bdynamic',
+                     '-lpthread'],
         name_prefix : '',
         gnu_symbol_visibility : 'default',
         install : false)

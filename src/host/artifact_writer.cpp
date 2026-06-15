@@ -152,7 +152,7 @@ void reset_add_remove_reascript() {
     g_fn_initialized = false;
 }
 
-void set_main_on_command(Main_OnCommand_fn fn) {
+void set_main_on_command_for_writer(Main_OnCommand_fn fn) {
     std::lock_guard<std::mutex> lock(g_fn_mtx);
     g_main_on_command = std::move(fn);
 }
@@ -211,29 +211,12 @@ WriteResult save_lua(const std::string& name,
         if (run_action) {
             if (g_main_on_command) {
                 g_main_on_command(new_id, 0);
-                r.extra["executed"] = true;
+                r.executed = true;
             } else {
-                r.extra["executed"] = false;
-                r.extra["execute_warning"] = "Main_OnCommand not initialized; run the action manually";
+                r.executed = false;
+                r.execute_warning = "Main_OnCommand not initialized; run the action manually";
             }
         }
-    }
-    return r;
-}
-        // Real signature: AddRemoveReaScript(bool add, int sectionID, const char* scriptfn, bool commit).
-        // 1) clear any prior registration under same path (best-effort, ignore result).
-        g_add_remove_reascript(false, 0, r.path.c_str(), true);
-        // 2) register the new path; sectionID 0 = main section.
-        int new_id = g_add_remove_reascript(true, 0, r.path.c_str(), true);
-        if (new_id <= 0) {
-            // File is still on disk — registration is best-effort per spec.
-            r.ok = false;
-            r.error_code = "REGISTER_FAILED";
-            r.error_message = "AddRemoveReaScript returned non-positive id";
-            r.action_id.reset();
-            return r;
-        }
-        r.action_id = new_id;
     }
     return r;
 }

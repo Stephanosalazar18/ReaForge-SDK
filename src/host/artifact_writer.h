@@ -31,7 +31,8 @@ void set_add_remove_reascript(AddRemoveReaScript_fn fn);
 
 // Main_OnCommand(int command, int flag). Used to auto-execute registered scripts.
 using Main_OnCommand_fn = std::function<void(int command, int flag)>;
-void set_main_on_command(Main_OnCommand_fn fn);
+// Set from mvp_host.cpp's REAPER init so save_lua can auto-execute actions.
+void set_main_on_command_for_writer(Main_OnCommand_fn fn);
 
 // For tests: reset to a default mock that returns -1 (registration failure).
 void reset_add_remove_reascript();

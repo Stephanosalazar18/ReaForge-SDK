@@ -74,6 +74,9 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(
     if (moc) {
         reaforge::host::set_main_on_command(
             [moc](int cmd, int flag) { moc(cmd, flag); });
+        // Also register with artifact_writer so save_lua can auto-execute.
+        reaforge::host::set_main_on_command_for_writer(
+            [moc](int cmd, int flag) { moc(cmd, flag); });
     }
 
     // Set the REAPER resource path so artifacts land in <resource>/Effects/ReaForge/

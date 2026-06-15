@@ -299,61 +299,82 @@ REAPER identifies FX by name string. The format depends on how the plugin is reg
 
 inline constexpr const char* kFxChainBuilderTemplateRef = R"MD(# FX Chain Builder — Lua Script Template
 
-Use this template to build FX chains programmatically. The LLM replaces `{{PLACEHOLDERS}}` with the specific FX names and parameter values, then calls `reaforge_save_lua()` to save the script and optionally execute it.
+Builds an FX chain on the currently selected track, exports it to
+`FXChains/ReaForge/<name>.RfxChain`, then unregisters itself from the
+Action List. The user runs this ONCE from Actions → it does its job and
+disappears.
+
+## How it works
+
+1. **LLM** fills `{{FX_NAMES}}` and `{{FX_PARAMS}}` with the desired chain
+2. LLM calls `reaforge_save_lua("build_{{CHAIN_NAME}}", script, register_action=true)`
+3. **User** opens Actions → finds `build_{{CHAIN_NAME}}` → runs it
+4. Script adds FX to the **selected track**, sets params, exports the
+   chain to `FXChains/ReaForge/`, and **unregisters itself**
+5. Chain file is ready. Builder action is gone.
+
+No tracks are created or deleted — the FX are applied to whatever track
+the user has selected when they run the action.
 
 ## Template
 
 ```lua
 -- Auto-generated FX chain builder for "{{CHAIN_NAME}}"
--- Run once: REAPER creates the .RfxChain file, then you can delete this script.
+-- Run ONCE from Actions. Applies FX to selected track, exports chain,
+-- then unregisters itself.
 
-local fx_names = {{FX_NAMES}}  -- e.g.: {"VST: ReaDelay (Cockos)", "VST: ReaEQ (Cockos)"}
-local fx_params = {{FX_PARAMS}}  -- e.g.: {[0] = {[0] = 0.5, [1] = 0.3}, [1] = {[0] = 1.0}}
+local fx_names = {{FX_NAMES}}
+local fx_params = {{FX_PARAMS}}
 local chain_name = "{{CHAIN_NAME}}"
+-- REAPER resource path + folder where this script lives
+local resource_path = reaper.GetResourcePath()
+local script_dir = resource_path .. "/Scripts/ReaForge"
+local script_filename = "build_" .. chain_name .. ".lua"
+local script_full_path = script_dir .. "/" .. script_filename
 
 -- Helper: try multiple name formats for a plugin
 local function add_fx_by_name(track, names)
-    for _, name in ipairs(names) do
-        local idx = reaper.TrackFX_AddByName(track, name, false, 1)
+    local variants = type(names) == "table" and names or {names}
+    for _, v_name in ipairs(variants) do
+        local idx = reaper.TrackFX_AddByName(track, v_name, false, 1)
         if idx >= 0 then
-            reaper.ShowConsoleMsg("Added: " .. name .. "\n")
+            reaper.ShowConsoleMsg("Added: " .. v_name .. " (idx=" .. idx .. ")\n")
             return idx
         end
     end
-    reaper.ShowConsoleMsg("FAILED to add any variant of: " .. table.concat(names, ", ") .. "\n")
+    reaper.ShowConsoleMsg("FAILED: " .. table.concat(variants, ", ") .. "\n")
     return -1
 end
 
--- Create a temporary track
-reaper.InsertTrackAtIndex(0, true)
-local track = reaper.GetTrack(0, 0)
-
--- Add each FX
-local added = {}
-for i, names in ipairs(fx_names) do
-    -- If names is a string, wrap it; if it's already a table of alternates, use it
-    local variants = type(names) == "table" and names or {names}
-    local idx = add_fx_by_name(track, variants)
-    if idx >= 0 then
-        table.insert(added, idx)
-    end
+-- Get the selected track, or create one if nothing selected
+local track = reaper.GetSelectedTrack(0, 0)
+if not track then
+    reaper.InsertTrackAtIndex(0, true)
+    track = reaper.GetTrack(0, 0)
+    reaper.SetTrackSelected(track, true)
+    reaper.ShowConsoleMsg("No track selected — created a new one.\n")
 end
 
--- Set parameters for each added FX
-for i, idx in ipairs(added) do
-    local params = fx_params[i - 1]  -- 0-indexed in Lua
-    if params then
-        for param_id, value in pairs(params) do
-            reaper.TrackFX_SetParam(track, idx, param_id, value)
+-- Add each FX
+for i, names in ipairs(fx_names) do
+    local idx = add_fx_by_name(track, names)
+    -- Set parameters
+    if idx >= 0 then
+        local params = fx_params[i - 1]  -- 0-indexed
+        if params then
+            for param_id, value in pairs(params) do
+                reaper.TrackFX_SetParam(track, idx, param_id, value)
+            end
         end
     end
 end
 
--- Export the chain using REAPER's native format
+-- Export the chain
 local resource_path = reaper.GetResourcePath()
-local chain_path = resource_path .. "/FXChains/ReaForge/" .. chain_name .. ".RfxChain"
+local chain_dir = resource_path .. "/FXChains/ReaForge"
+reaper.RecursiveCreateDirectory(chain_dir, 0)
+local chain_path = chain_dir .. "/" .. chain_name .. ".RfxChain"
 
--- GetTrackFXChain returns (boolean, string) — the string is the binary chain
 local ok, chain_data = reaper.GetTrackFXChain(track, 0)
 if ok and chain_data and #chain_data > 0 then
     local f = io.open(chain_path, "wb")
@@ -365,12 +386,13 @@ if ok and chain_data and #chain_data > 0 then
         reaper.ShowConsoleMsg("FAILED to write: " .. chain_path .. "\n")
     end
 else
-    reaper.ShowConsoleMsg("GetTrackFXChain failed. REAPER 6.x+ required.\n")
-    reaper.ShowConsoleMsg("Manual workaround: add FX manually, right-click FX chain -> Save chain as...\n")
+    reaper.ShowConsoleMsg("GetTrackFXChain failed (REAPER 6.x+ required).\n")
+    reaper.ShowConsoleMsg("Manual: right-click FX chain -> Save chain as... -> " .. chain_path .. "\n")
 end
 
--- Clean up the temporary track
-reaper.DeleteTrack(track)
+-- Unregister this action so it disappears from the Action List
+reaper.AddRemoveReaScript(false, 0, script_full_path, true)
+reaper.ShowConsoleMsg("Action unregistered: " .. script_filename .. " at " .. script_full_path .. "\n")
 ```
 
 ## Placeholder Guide
@@ -379,14 +401,11 @@ reaper.DeleteTrack(track)
 |---|---|---|
 | `{{CHAIN_NAME}}` | string | `"vocal_slap"` |
 | `{{FX_NAMES}}` | Lua table of strings or tables | `{{"VST: ReaDelay (Cockos)", "VST: ReaEQ (Cockos)"}}` |
-| `{{FX_PARAMS}}` | Lua table: `{[fx_index] = {[param_id] = value}}` | `{[0] = {[0] = 0.25, [1] = 0.5}}` |
-
-**FX index is 0-based** (first FX added = index 0).  
-**Param IDs**: look up each plugin's parameter list. Common Cockos params are documented in the recipes.
+| `{{FX_PARAMS}}` | Lua table: `{[fx_index] = {[param_id] = value}}` | `{[0] = {[0] = 0.25}, [1] = {[0] = 0.5}}` |
 
 ## Multi-format name resolution
 
-Each entry in `fx_names` can be a **string** (single name) or a **table of strings** (alternate formats to try):
+Each entry in `fx_names` can be a **string** or a **table of alternates**:
 
 ```lua
 -- Single format:
@@ -395,14 +414,6 @@ Each entry in `fx_names` can be a **string** (single name) or a **table of strin
 -- Multiple fallbacks (first match wins):
 {{"VST: ReaDelay (Cockos)", "VST3: ReaDelay (Cockos)", "JS: ReaDelay"}}
 ```
-
-## Post-generation
-
-After the script runs once:
-1. The `.RfxChain` file is in `FXChains/ReaForge/<name>.RfxChain`
-2. The user applies it via right-click track → "FX chain" → "Load FX chain..."
-3. The builder script can be deleted (it was single-use)
-4. The chain file works without the script
 )MD";
 
 inline constexpr const char* kVocalSlapRecipeRef = R"MD(# Vocal Slap FX Chain Recipe
@@ -411,28 +422,10 @@ inline constexpr const char* kVocalSlapRecipeRef = R"MD(# Vocal Slap FX Chain Re
 
 | Order | FX | Purpose |
 |---|---|---|
-| 1 | ReaDelay (Cockos) | Slap delay (~150ms, single tap, no feedback) |
-| 2 | ReaEQ (Cockos) | High-pass filter to clean low end, slight presence boost |
+| 1 | ReaDelay (Cockos) | Slap delay (~150ms, single tap) |
+| 2 | ReaEQ (Cockos) | Low-pass 12kHz, high-pass 80Hz, gentle scoop at 2.5kHz |
 
-## ReaDelay Parameters
-
-```
-Length (time):      150 ms    (param 0 → 0.25 on a 0–1 normalized scale)
-Feedback:           -45 dB    (param 1 → 0.05, almost no feedback)
-Wet:                100%      (param 2 → 1.0)
-Dry:                0%        (param 3 → 0.0)
-```
-
-## ReaEQ Parameters
-
-```
-Band 1 (HPF):       enabled, freq=200 Hz, Q=0.707, gain=0   (param 0–3)
-Band 2 (Bell):      freq=3.2 kHz, Q=1.0, gain=+2.5 dB      (param 4–6)
-Band 3 (disabled):  —                                           
-Band 4 (disabled):  —
-```
-
-## Completed Placeholders
+## Completed Placeholders (for chain-builder-template)
 
 ```lua
 local fx_names = {
@@ -444,49 +437,57 @@ local fx_params = {
     [0] = {  -- ReaDelay
         [0] = 0.25,   -- Length (150ms / 600ms max ≈ 0.25)
         [1] = 0.05,   -- Feedback (-45 dB → almost zero)
-        [2] = 1.0,    -- Wet
-        [3] = 0.0     -- Dry
+        [2] = 1.0,    -- Wet 100%
+        [3] = 0.0,    -- Dry 0%
+        [4] = 0.5,    -- Low-pass filter freq (12 kHz / 20 kHz max ≈ 0.5)
+        [5] = 0.08,   -- High-pass filter freq (80 Hz / 1000 Hz max ≈ 0.08)
     },
     [1] = {  -- ReaEQ
         [0] = 0.5,    -- Band 1 type (0.5 = HPF)
         [1] = 1.0,    -- Band 1 enabled
-        [2] = 0.33,   -- Band 1 frequency (200 Hz / 600 Hz max ≈ 0.33)
-        [3] = 0.5,    -- Band 1 Q (0.707 ≈ 0.5 on 0–1 scale)
+        [2] = 0.08,   -- Band 1 freq (80 Hz)
+        [3] = 0.5,    -- Band 1 Q (0.707 ≈ 0.5)
         [4] = 0.0,    -- Band 1 gain
-        [5] = 1.0,    -- Band 2 enabled
-        [6] = 0.5,    -- Band 2 type (0.5 = Bell)
-        [7] = 0.55,   -- Band 2 frequency (3.2 kHz / 5800 Hz max ≈ 0.55)
-        [8] = 0.5,    -- Band 2 Q (1.0 ≈ 0.5)
-        [9] = 0.625   -- Band 2 gain (+2.5 dB on -12 to +12 range ≈ 0.625)
+        [5] = 1.0,    -- Band 2 type (0.5 = Bell)
+        [6] = 1.0,    -- Band 2 enabled
+        [7] = 0.45,   -- Band 2 freq (2.5 kHz ≈ 0.45 on log scale)
+        [8] = 0.35,   -- Band 2 Q (1.0 ≈ 0.35)
+        [9] = 0.375,  -- Band 2 gain (-3 dB on -12 to +12 range ≈ 0.375)
+        [10] = 0.5 + 2.0/24,  -- Band 3 type (0.5 = Bell)
+        [11] = 1.0,   -- Band 3 enabled
+        [12] = 0.62,  -- Band 3 freq (4.5 kHz ≈ 0.62)
+        [13] = 0.35,  -- Band 3 Q (1.0 ≈ 0.35)
+        [14] = 0.417, -- Band 3 gain (-2 dB ≈ 0.417)
     }
 }
 
 local chain_name = "vocal_slap"
 ```
 
-## Parameter Scale Notes
+## Parameter Scale Reference
 
-- **ReaDelay Length**: 0.0–1.0 maps to 0–600 ms. `0.25` ≈ 150 ms.
-- **ReaDelay Feedback**: 0.0–1.0 maps to -120 to 0 dB. `0.05` ≈ -45 dB.
-- **ReaEQ Frequency**: 0.0–1.0 maps to 20 Hz–24 kHz (log scale). For 200 Hz on band 1 (HPF default max is ~600 Hz), use `0.33`. For 3.2 kHz on band 2 (bell default max is ~5800 Hz), use `0.55`.
-- **ReaEQ Gain**: 0.0–1.0 maps to -12 to +12 dB. Center (0 dB) = 0.5. +2.5 dB = `0.5 + 2.5/24 = 0.604`.
-- **ReaEQ Q**: 0.0–1.0 maps to 0.1–4.0. 0.707 ≈ `0.2`, 1.0 ≈ `0.3`.
+- **ReaDelay Length**: 0–1 maps to 0–600 ms. `0.25` ≈ 150 ms.
+- **ReaDelay Feedback**: 0–1 maps to -120 to 0 dB. `0.05` ≈ -45 dB.
+- **ReaDelay LP cutoff**: 0–1 maps to 20–20000 Hz (log). `0.5` ≈ 12 kHz.
+- **ReaDelay HP cutoff**: 0–1 maps to 20–1000 Hz (log). `0.08` ≈ 80 Hz.
+- **ReaEQ Frequency**: 0–1 maps to 20–24000 Hz (log). `0.45` ≈ 2.5 kHz.
+- **ReaEQ Gain**: 0–1 maps to -12 to +12 dB. Center = 0.5. Formula: `0.5 + dB/24`.
+- **ReaEQ Q**: 0–1 maps to 0.1–4.0. 0.707 ≈ `0.2`, 1.0 ≈ `0.35`.
+
+## User Flow
+
+1. LLM generates the script via `reaforge_save_lua("build_vocal_slap", script, register_action=true)`
+2. User selects a vocal track in REAPER
+3. User opens Actions → finds `build_vocal_slap` → runs it
+4. ReaDelay + ReaEQ are added to the track, chain exported to `FXChains/ReaForge/vocal_slap.RfxChain`
+5. The action unregisters itself — gone from the Action List
 
 ## Manual Verification
 
-If the script fails, the user can create this chain manually:
-1. Add ReaDelay to a track → set Length=150ms, Feedback=-45dB, Wet=100%, Dry=0%
-2. Add ReaEQ → Band 1: HPF 200 Hz, Band 2: Bell 3.2 kHz +2.5 dB
+If the script fails, create the chain manually:
+1. Add ReaDelay → set Length=150ms, Feedback=-45dB, Wet=100%, Dry=0%, LP=12kHz, HP=80Hz
+2. Add ReaEQ → HPF 80Hz, Bell -3dB @2.5kHz Q=1.0, Bell -2dB @4.5kHz Q=1.0
 3. Right-click FX chain → "Save chain as..." → `FXChains/ReaForge/vocal_slap.RfxChain`
-
-## Variations
-
-| Variation | Change |
-|---|---|
-| Longer slap | Length → 200–300 ms (0.33–0.5) |
-| Slap with feedback | Feedback → -20 dB (0.33) |
-| Brighter vocal | ReaEQ Band 2 gain → +4 dB (0.67) |
-| Add de-esser | Add ReaXComp (Cockos) as FX #3, set ratio to ∞:1, threshold to -25 dB, frequency to 6–8 kHz |
 )MD";
 
 

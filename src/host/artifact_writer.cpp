@@ -19,6 +19,7 @@ namespace {
 constexpr const char* kNameRegex = "^[A-Za-z0-9_\\-]{1,64}$";
 
 AddRemoveReaScript_fn g_add_remove_reascript;
+Main_OnCommand_fn g_main_on_command;
 std::mutex g_fn_mtx;
 bool g_fn_initialized = false;
 
@@ -151,6 +152,11 @@ void reset_add_remove_reascript() {
     g_fn_initialized = false;
 }
 
+void set_main_on_command(Main_OnCommand_fn fn) {
+    std::lock_guard<std::mutex> lock(g_fn_mtx);
+    g_main_on_command = std::move(fn);
+}
+
 std::string resource_base_dir() {
     // 1. Check the global resource path (set by mvp_host.cpp from REAPER API).
     if (!g_resource_path.empty()) return g_resource_path;
@@ -175,7 +181,8 @@ WriteResult save_jsfx(const std::string& name,
 WriteResult save_lua(const std::string& name,
                      const std::string& code,
                      bool register_action,
-                     bool overwrite) {
+                     bool overwrite,
+                     bool run_action) {
     WriteResult r = do_write("Scripts", ".lua", name, code, overwrite);
     if (!r.ok) return r;
 
@@ -187,6 +194,32 @@ WriteResult save_lua(const std::string& name,
             r.error_message = "AddRemoveReaScript not initialized";
             return r;
         }
+        // Real signature: AddRemoveReaScript(bool add, int sectionID, const char* scriptfn, bool commit).
+        g_add_remove_reascript(false, 0, r.path.c_str(), true);
+        int new_id = g_add_remove_reascript(true, 0, r.path.c_str(), true);
+        if (new_id <= 0) {
+            r.ok = false;
+            r.error_code = "REGISTER_FAILED";
+            r.error_message = "AddRemoveReaScript returned non-positive id";
+            r.action_id.reset();
+            return r;
+        }
+        r.action_id = new_id;
+
+        // Auto-execute the script via Main_OnCommand so the user doesn't
+        // need to go to Actions → find → run manually.
+        if (run_action) {
+            if (g_main_on_command) {
+                g_main_on_command(new_id, 0);
+                r.extra["executed"] = true;
+            } else {
+                r.extra["executed"] = false;
+                r.extra["execute_warning"] = "Main_OnCommand not initialized; run the action manually";
+            }
+        }
+    }
+    return r;
+}
         // Real signature: AddRemoveReaScript(bool add, int sectionID, const char* scriptfn, bool commit).
         // 1) clear any prior registration under same path (best-effort, ignore result).
         g_add_remove_reascript(false, 0, r.path.c_str(), true);

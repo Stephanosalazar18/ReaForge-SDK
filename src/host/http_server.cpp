@@ -73,6 +73,12 @@ void respond_write_result(httplib::Response& res, const WriteResult& r,
         if (include_action_id_if_present && r.action_id.has_value()) {
             out["action_id"] = *r.action_id;
         }
+        if (r.execute_warning.empty()) {
+            out["executed"] = r.executed;
+        } else {
+            out["executed"] = false;
+            out["execute_warning"] = r.execute_warning;
+        }
         res.status = 200;
         res.set_content(out.dump(), "application/json");
         return;
@@ -224,7 +230,8 @@ void HttpServer::register_routes() {
         std::string code = extract_field(body, "code");
         bool register_action = parse_bool_default_false(body, "register_action");
         bool overwrite = parse_bool_default_false(body, "overwrite");
-        WriteResult r = save_lua(name, code, register_action, overwrite);
+        bool run_action = parse_bool_default_false(body, "run_action");
+        WriteResult r = save_lua(name, code, register_action, overwrite, run_action);
         respond_write_result(res, r, /*include_action_id_if_present=*/true);
     });
 

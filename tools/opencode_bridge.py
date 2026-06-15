@@ -149,8 +149,10 @@ def make_server() -> Server:
                     "Write a ReaScript Lua file into <REAPER>/Scripts/ReaForge/<name>.lua. "
                     "If register_action=true (opt-in), the extension also calls "
                     "reaper.AddRemoveReaScript to expose the script as a REAPER action "
-                    "and returns the new action_id. Refuses to overwrite unless "
-                    "overwrite=true."
+                    "and returns the new action_id. If run_action=true (requires "
+                    "register_action=true), the script is executed immediately via "
+                    "Main_OnCommand so the user doesn't need to run it manually. "
+                    "Refuses to overwrite unless overwrite=true."
                 ),
                 inputSchema={
                     "type": "object",
@@ -166,6 +168,11 @@ def make_server() -> Server:
                         "register_action": {
                             "type": "boolean",
                             "description": "Opt-in: register the script as a REAPER action. Defaults to false.",
+                            "default": False,
+                        },
+                        "run_action": {
+                            "type": "boolean",
+                            "description": "After registering, execute the action immediately. Requires register_action=true.",
                             "default": False,
                         },
                         "overwrite": {
@@ -247,6 +254,7 @@ def make_server() -> Server:
                     "name": arguments.get("name"),
                     "code": arguments.get("code"),
                     "register_action": bool(arguments.get("register_action", False)),
+                    "run_action": bool(arguments.get("run_action", False)),
                     "overwrite": bool(arguments.get("overwrite", False)),
                 }
                 r = client.post("/v1/save/lua", json=payload)

@@ -98,18 +98,20 @@ def make_server() -> Server:
             Tool(
                 name="reaforge_get_api_reference",
                 description=(
-                    "Return the offline-bundled API reference markdown for one of "
-                    "three targets: 'jsfx' (JSFX cheatsheet), 'reascript_lua' (REAPER "
-                    "Lua API cheatsheet), 'fx_chain_format' (RfxChain XML format). "
-                    "Use this to ground code generation — the payloads are static, "
-                    "no network fetch."
+                    "Return the offline-bundled API reference markdown. "
+                    "Accepted targets: 'jsfx', 'reascript_lua', 'fx_chain_format' for "
+                    "full cheatsheets, or sub-paths like 'jsfx-primitives/saturation', "
+                    "'jsfx-algorithms/reverb/fdn', 'fx_chain-primitives/recipes/vocal-slap'. "
+                    "The C++ extension validates the target; unknown targets return "
+                    "INVALID_TARGET. No network fetch."
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "target": {
                             "type": "string",
-                            "enum": ["jsfx", "reascript_lua", "fx_chain_format"],
+                            "description": "Reference identifier. Known prefixes: jsfx-primitives/, jsfx-algorithms/, fx_chain-primitives/recipes/, or the 3 root keys."
+                        },
                             "description": "Which API reference markdown to return.",
                         },
                     },

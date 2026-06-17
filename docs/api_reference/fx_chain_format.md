@@ -1,100 +1,30 @@
-# FX Chain (RfxChain) Format
+# FX Chain Format (REAPER RfxChain)
 
-> Minimum vocabulary to write a valid REAPER FX Chain (`.RfxChain`) file. RfxChain files are loaded via Track → FX → "Load chain" or as inserts in a track template.
+## 🛑 DO NOT CALL reaforge_save_fx_chain WITH GENERATED XML
 
-## File format
-
-Plain XML, with a `<FXCHAIN>` root. Saved as `<REAPER resource>/FXChains/ReaForge/<name>.RfxChain` (the ReaForge convention).
-
-## Minimal template
-
-```xml
-<FXCHAIN
-  WNDRECT="0 0 0 0"
-  SHOW="0"
-  LASTSEL="0"
-  DOCKED="0"
->
-<FX id="0" src="VST:ReaEQ (Cockos)" UINPUT="0">
-  <NAME>ReaEQ</NAME>
-  <PRESET>
-    <plain>
-    </plain>
-  </PRESET>
-  <PARAMBEGINS>
-    <P name="B1 On" vt="0"/>
-    <P name="B2 On" vt="0"/>
-  </PARAMBEGINS>
-</FX>
-<FX id="1" src="VST:ReaDelay (Cockos)" UINPUT="0">
-  <NAME>ReaDelay</NAME>
-  <PARAMBEGINS>
-    <P name="Wet" vt="0.5"/>
-  </PARAMBEGINS>
-</FX>
-</FXCHAIN>
+REAPER's `.RfxChain` format is a **proprietary text/binary format** that looks like:
+```
+BYPASS 0 0
+<VST "VST: ReaEQ (Cockos)" reaeq.dll 0 "" 1919247729<...base64...> "" ...>
+FXID {GUID}
+WAK 0 0
 ```
 
-## Tag reference
+**The XML format (`<FXCHAIN> <FX id="0" src="...">`) is NOT what REAPER reads.**
+If you call `reaforge_save_fx_chain(name, xml_content)`, the file will be unreadable
+by REAPER and produce "error al leer".
 
-| Tag | Where | Meaning |
-|---|---|---|
-| `<FXCHAIN>` | root | The chain itself. Attributes: `WNDRECT` (window position), `SHOW` (0/1), `LASTSEL`, `DOCKED`. |
-| `<FX id="N" src="..." UINPUT="0">` | child of FXCHAIN | One effect. `id` is position in chain (0-indexed). `src` is the plugin identifier. |
-| `<NAME>` | child of FX | Display name (must match plugin). |
-| `<PRESET>` | child of FX | Optional preset block. `<plain>` means no preset. |
-| `<PARAMBEGINS>` | child of FX | One `<P name="ParamName" vt="Value"/>` per param. Values are strings. |
+**The ONLY correct way to create an `.RfxChain` is to let REAPER generate it**
+via the Lua chain builder template. See `fx_chain-primitives/chain-builder-template.md`.
 
-## Plugin `src` formats
+## Correct flow
 
-| Format | Example | Notes |
-|---|---|---|
-| `VST:Name` | `VST:ReaEQ (Cockos)` | VST2 plugins. |
-| `VST3:Name` | `VST3:ReaEQ (Cockos)` | VST3 plugins. |
-| `JS:Name` | `JS:ReaDelay` | Built-in JS effects. |
-| `AU:Name` | `AU:AppleAUNames` | macOS only. |
-| `CLAP:Name` | `CLAP:Plugin Name` | CLAP plugins. |
-| `DX:Name` | `DX:DirectXPlugin` | Windows only. |
+1. Call `reaforge_get_api_reference("fx_chain-primitives/chain-builder-template")` → get the Lua template
+2. Fill `{{FX_NAMES}}` and `{{FX_PARAMS}}` with the desired chain
+3. Call `reaforge_save_lua("build_<name>", script, register_action=true)` → saves the builder
+4. User runs the action from Actions → REAPER adds FX to the track and exports the chain
+5. The `.RfxChain` file appears in `FXChains/ReaForge/`
 
-The string after the colon is the **plugin display name as REAPER sees it** — case-sensitive. Mismatches cause the chain to load with the missing FX shown as "?".
-
-## Common built-in FX identifiers
-
-These are the safe-to-use ones that ship with REAPER:
-
-- `VST:ReaEQ (Cockos)`
-- `VST:ReaDelay (Cockos)`
-- `VST:ReaComp (Cockos)`
-- `VST:ReaGate (Cockos)`
-- `VST:ReaPitch (Cockos)`
-- `VST:ReaVerb (Cockos)`
-- `VST:ReaXcomp (Cockos)`
-- `VST:ReaSynth (Cockos)`
-- `VST:ReaSamplomatic (Cockos)`
-- `VST:ReaVoice (Cockos)`
-- `JS:Volume` / `JS:Pan`
-- `JS:Gain` (utility)
-
-For third-party plugins, use whatever REAPER shows in the FX browser.
-
-## Parameter name rules
-
-`<P name="..."/>` names are the **display labels** of the parameters, not internal IDs. They must match exactly. Common param names on built-in plugins:
-
-- ReaEQ: `B1 On`, `B1 Type`, `B1 Freq`, `B1 Gain`, `B1 Q`, `B1 Bandwidth`
-- ReaDelay: `Wet`, `Time`, `Length ms`, `Feedback`
-- ReaComp: `Threshold`, `Ratio`, `Attack`, `Release`, `Makeup`
-
-The numeric value of `vt` is **always a string** (use the format you'd see in the UI). For a -6 dB threshold: `<P name="Threshold" vt="-6"/>`.
-
-## Bypassing an FX
-
-Set `BYPASS="1"` on the `<FX>` tag.
-
-## ReaForge-specific notes
-
-- Save to `FXChains/ReaForge/<name>.RfxChain`.
-- The file must be valid XML; an unclosed tag breaks the whole chain on load.
-- The order of `<FX>` elements is the chain order — first one is top of chain.
-- Adding a new chain does NOT require a REAPER rescan (unlike JSFX); the chain appears in the "FX: Load chain" menu immediately.
-- For vocal slap chains, a common pattern is: ReaEQ (high-pass at 100Hz, gentle boost at 3kHz) → ReaDelay (200ms, 25% feedback, 30% wet).
+**NEVER call `reaforge_save_fx_chain(name, content)` with hand-generated or LLM-generated XML.**
+That endpoint is for programmatic use only (e.g., the Lua builder template calling
+`GetTrackFXChain()` programmatically).

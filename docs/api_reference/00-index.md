@@ -11,39 +11,49 @@
 | `delays/modulated-delay` | Delays | 43 | Modulated Delay / Flanger Base |
 | `delays/ping-pong-delay` | Delays | 46 | Ping-Pong Delay |
 | `dynamics/rms-compressor` | Dynamics | 46 | RMS Compressor |
+| `filters/moog-ladder` | Filters — Advanced | 60 | Moog Ladder Filter |
 | `filters/one-pole-lowpass` | Filters | 24 | One-Pole Lowpass |
 | `filters/rbj-highpass` | Filters | 42 | RBJ Highpass |
 | `filters/rbj-lowpass` | Filters | 44 | RBJ Lowpass |
+| `filters/svf-chamberlin` | SVF) — Chamberlin (Filters — Advanced | 41 | State Variable Filter |
+| `modulation/bitcrusher` | Lo-fi / Degradation | 43 | Bitcrusher |
 | `modulation/chorus-flanger` | Modulation | 53 | Chorus / Flanger |
+| `modulation/ring-modulator` | Modulation | 34 | Ring Modulator |
 | `pitch/psola-pitch-shift` | Pitch | 56 | PSOLA Pitch Shift |
 | `reverb/fdn-reverb` | Reverb | 64 | FDN Reverb |
 | `saturation/asymmetric-tanh` | Saturation | 25 | Asymmetric Tanh |
 | `saturation/hard-clip-knee` | Saturation | 35 | Hard Clip with Knee |
 | `saturation/tanh-soft-clip` | Saturation | 21 | Tanh Soft Clip |
+| `synthesis/karplus-strong` | Synthesis | 63 | Karplus-Strong String Synthesis |
 | `utilities/dc-blocking` | Utilities | 25 | DC Blocking |
 | `utilities/denormal-prevention` | Utilities | 13 | Denormal Prevention |
 | `utilities/stereo-width` | Utilities | 25 | Stereo Width |
 
 ## Compatibility Matrix
 
-| | `feedback-del` | `modulated-de` | `ping-pong-de` | `one-pole-low` | `rbj-highpass` | `rbj-lowpass` | `asymmetric-t` | `hard-clip-kn` | `tanh-soft-cl` | `dc-blocking` | `denormal-pre` | `stereo-width` | `rms-compress` | `chorus-flang` | `psola-pitch-` | `fdn-reverb` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `feedback-del` | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ |
-| `modulated-de` | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ |
-| `ping-pong-de` | ✗ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ |
-| `one-pole-low` | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `rbj-highpass` | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ |
-| `rbj-lowpass` | △ | △ | △ | △ | △ | — | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | ✓✓ |
-| `asymmetric-t` | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓ | △ | △ | △ | △ | △ | △ |
-| `hard-clip-kn` | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓ | △ | △ | △ | △ | △ | △ |
-| `tanh-soft-cl` | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓ | △ | △ | △ | △ | △ | △ |
-| `dc-blocking` | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ |
-| `denormal-pre` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ |
-| `stereo-width` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ |
-| `rms-compress` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ |
-| `chorus-flang` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ |
-| `psola-pitch-` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓✓ |
-| `fdn-reverb` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — |
+| | `feedback-del` | `modulated-de` | `ping-pong-de` | `one-pole-low` | `rbj-highpass` | `rbj-lowpass` | `asymmetric-t` | `hard-clip-kn` | `tanh-soft-cl` | `dc-blocking` | `denormal-pre` | `stereo-width` | `rms-compress` | `moog-ladder` | `svf-chamberl` | `bitcrusher` | `chorus-flang` | `ring-modulat` | `psola-pitch-` | `fdn-reverb` | `karplus-stro` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `feedback-del` | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `modulated-de` | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `ping-pong-de` | ✗ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `one-pole-low` | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rbj-highpass` | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rbj-lowpass` | △ | △ | △ | △ | △ | — | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `asymmetric-t` | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `hard-clip-kn` | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `tanh-soft-cl` | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `dc-blocking` | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `denormal-pre` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `stereo-width` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rms-compress` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ |
+| `moog-ladder` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `svf-chamberl` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | △ | ✓✓ | △ |
+| `bitcrusher` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | ✓✓ | △ |
+| `chorus-flang` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓✓ | △ |
+| `ring-modulat` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | △ |
+| `psola-pitch-` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓✓ | △ |
+| `fdn-reverb` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ |
+| `karplus-stro` | △ | △ | △ | △ | △ | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | — |
 
 **Legend:** — = self | ✓ = compatible | ✓✓ = strongly compatible (category-level) | ✗ = conflicts | △ = needs verification
 

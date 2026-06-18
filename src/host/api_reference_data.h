@@ -22,39 +22,49 @@ inline constexpr const char* k00IndexRef = R"MD(# DSP Primitives Index
 | `delays/modulated-delay` | Delays | 43 | Modulated Delay / Flanger Base |
 | `delays/ping-pong-delay` | Delays | 46 | Ping-Pong Delay |
 | `dynamics/rms-compressor` | Dynamics | 46 | RMS Compressor |
+| `filters/moog-ladder` | Filters — Advanced | 60 | Moog Ladder Filter |
 | `filters/one-pole-lowpass` | Filters | 24 | One-Pole Lowpass |
 | `filters/rbj-highpass` | Filters | 42 | RBJ Highpass |
 | `filters/rbj-lowpass` | Filters | 44 | RBJ Lowpass |
+| `filters/svf-chamberlin` | SVF) — Chamberlin (Filters — Advanced | 41 | State Variable Filter |
+| `modulation/bitcrusher` | Lo-fi / Degradation | 43 | Bitcrusher |
 | `modulation/chorus-flanger` | Modulation | 53 | Chorus / Flanger |
+| `modulation/ring-modulator` | Modulation | 34 | Ring Modulator |
 | `pitch/psola-pitch-shift` | Pitch | 56 | PSOLA Pitch Shift |
 | `reverb/fdn-reverb` | Reverb | 64 | FDN Reverb |
 | `saturation/asymmetric-tanh` | Saturation | 25 | Asymmetric Tanh |
 | `saturation/hard-clip-knee` | Saturation | 35 | Hard Clip with Knee |
 | `saturation/tanh-soft-clip` | Saturation | 21 | Tanh Soft Clip |
+| `synthesis/karplus-strong` | Synthesis | 63 | Karplus-Strong String Synthesis |
 | `utilities/dc-blocking` | Utilities | 25 | DC Blocking |
 | `utilities/denormal-prevention` | Utilities | 13 | Denormal Prevention |
 | `utilities/stereo-width` | Utilities | 25 | Stereo Width |
 
 ## Compatibility Matrix
 
-| | `feedback-del` | `modulated-de` | `ping-pong-de` | `one-pole-low` | `rbj-highpass` | `rbj-lowpass` | `asymmetric-t` | `hard-clip-kn` | `tanh-soft-cl` | `dc-blocking` | `denormal-pre` | `stereo-width` | `rms-compress` | `chorus-flang` | `psola-pitch-` | `fdn-reverb` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `feedback-del` | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ |
-| `modulated-de` | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ |
-| `ping-pong-de` | ✗ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ |
-| `one-pole-low` | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `rbj-highpass` | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ |
-| `rbj-lowpass` | △ | △ | △ | △ | △ | — | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | ✓✓ |
-| `asymmetric-t` | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓ | △ | △ | △ | △ | △ | △ |
-| `hard-clip-kn` | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓ | △ | △ | △ | △ | △ | △ |
-| `tanh-soft-cl` | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓ | △ | △ | △ | △ | △ | △ |
-| `dc-blocking` | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ |
-| `denormal-pre` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ |
-| `stereo-width` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ |
-| `rms-compress` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ |
-| `chorus-flang` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ |
-| `psola-pitch-` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓✓ |
-| `fdn-reverb` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — |
+| | `feedback-del` | `modulated-de` | `ping-pong-de` | `one-pole-low` | `rbj-highpass` | `rbj-lowpass` | `asymmetric-t` | `hard-clip-kn` | `tanh-soft-cl` | `dc-blocking` | `denormal-pre` | `stereo-width` | `rms-compress` | `moog-ladder` | `svf-chamberl` | `bitcrusher` | `chorus-flang` | `ring-modulat` | `psola-pitch-` | `fdn-reverb` | `karplus-stro` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `feedback-del` | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `modulated-de` | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `ping-pong-de` | ✗ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `one-pole-low` | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rbj-highpass` | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rbj-lowpass` | △ | △ | △ | △ | △ | — | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `asymmetric-t` | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `hard-clip-kn` | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `tanh-soft-cl` | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `dc-blocking` | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `denormal-pre` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `stereo-width` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rms-compress` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ |
+| `moog-ladder` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | ✓✓ | △ |
+| `svf-chamberl` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | △ | ✓✓ | △ |
+| `bitcrusher` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | ✓✓ | △ |
+| `chorus-flang` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓✓ | △ |
+| `ring-modulat` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | △ |
+| `psola-pitch-` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓✓ | △ |
+| `fdn-reverb` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ |
+| `karplus-stro` | △ | △ | △ | △ | △ | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | — |
 
 **Legend:** — = self | ✓ = compatible | ✓✓ = strongly compatible (category-level) | ✗ = conflicts | △ = needs verification
 
@@ -371,6 +381,242 @@ Feed-forward RMS compressor. Based on FAUST `compressor.lib` and standard dynami
 <!-- test: Sine at -6 dB. Threshold=-12 dB, Ratio=4:1. Output should show ~1.5 dB gain reduction. -->
 )MD";
 
+inline constexpr const char* kJsfxAlgorithmsFiltersMoogLadderRef = R"MD(# Moog Ladder Filter (Filters — Advanced)
+
+## Code
+```jsfx
+desc:Moog Ladder Filter
+
+slider1:1000<20,20000,1>:log>Cutoff (Hz)
+slider2:0.5<0,1,0.01>Resonance
+slider3:0<0,12,0.1>Drive (dB)
+slider4:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+// 4 stage state
+s1_l = s2_l = s3_l = s4_l = 0;
+s1_r = s2_r = s3_r = s4_r = 0;
+
+@slider
+fc = 2 * $pi * slider1 / srate;
+// Thermal voltage ~1.0, tanh saturation in feedback
+t = tan(fc * 0.5);
+// Coefficient for one-pole stages (Stilson/Smith formulation)
+g = t / (1 + t);
+// Resonance compensation
+res = slider2 * 4;  // 0 to 4
+drive_lin = 10^(slider3 / 20);
+out_gain = 10^(slider4 / 20);
+// Feedback gain (compensated for 4-pole loss)
+k = res * (1 - g) * (1 - g) * (1 - g) * (1 - g);
+
+@sample
+// --- Left channel ---
+in_l = spl0 * drive_lin;
+// Feedback from stage 4 (with tanh nonlinearity for analog character)
+fb_l = tanh(s4_l * k);
+// Stage 1
+v1_l = g * (in_l - fb_l) + (1 - g) * s1_l;
+s1_l = v1_l;
+// Stage 2
+v2_l = g * v1_l + (1 - g) * s2_l;
+s2_l = v2_l;
+// Stage 3
+v3_l = g * v2_l + (1 - g) * s3_l;
+s3_l = v3_l;
+// Stage 4
+v4_l = g * v3_l + (1 - g) * s4_l;
+s4_l = v4_l;
+spl0 = v4_l * out_gain;
+
+// --- Right channel ---
+in_r = spl1 * drive_lin;
+fb_r = tanh(s4_r * k);
+v1_r = g * (in_r - fb_r) + (1 - g) * s1_r;
+s1_r = v1_r;
+v2_r = g * v1_r + (1 - g) * s2_r;
+s2_r = v2_r;
+v3_r = g * v2_r + (1 - g) * s3_r;
+s3_r = v3_r;
+v4_r = g * v3_r + (1 - g) * s4_r;
+s4_r = v4_r;
+spl1 = v4_r * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Cutoff | 20–20000 Hz (log) | 1000 | Filter cutoff frequency |
+| Resonance | 0–1 | 0.5 | Self-oscillation amount. 0 = no resonance, 1 = near self-oscillation |
+| Drive | 0–12 dB | 0 | Input drive into the filter. Adds harmonics via tanh nonlinearity |
+| Output | -12 to +12 dB | 0 | Post-filter gain |
+
+## Use Case
+The classic Moog transistor ladder filter sound. 24 dB/octave lowpass with musical resonance that self-oscillates at high Q. The tanh nonlinearity in the feedback path gives the "warm" analog character that digital biquads lack. Essential for synth bass, leads, and any sound that needs "that Moog sound."
+
+## Compatibility
+- **Before**: Saturation (drive into the filter), EQ
+- **After**: Delay, reverb, chorus
+- **Requires**: 4 state variables per channel, tanh nonlinearity
+- **Conflicts**: Cascading multiple Moog filters creates very steep rolloff (48 dB/oct) — usually one is enough
+
+## Source
+Stilson & Smith "Alias-Free Digital Synthesis of Classic Analog Waveforms" (1996).
+Tanh nonlinearity from Huovilainen's analog modeling approach.
+Referenced in FAUST `moog.lib` and Will Pirkle's synthesizer design textbook.
+License: public domain (algorithm), MIT-compatible (implementation).
+
+<!-- test: Saw wave input. Sweep cutoff 20000→100 Hz. Resonance=0.8 should show pronounced peak at cutoff, self-oscillation near 1.0. Drive=6dB adds visible waveform distortion. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsFiltersSvfChamberlinRef = R"MD(# State Variable Filter (SVF) — Chamberlin (Filters — Advanced)
+
+## Code
+```jsfx
+desc:State Variable Filter (SVF)
+
+slider1:1000<20,20000,1>:log>Cutoff (Hz)
+slider2:1<0.1,10,0.01>Resonance (Q)
+slider3:0<0,3,1{Lowpass,Bandpass,Highpass,Notch}>Output Mode
+
+@init
+denorm = 1e-25;
+lp_l = bp_l = hp_l = 0;
+lp_r = bp_r = hp_r = 0;
+
+@slider
+f = 2 * sin($pi * slider1 / srate);  // Chamberlin frequency coefficient
+// Clamp to stability range (< 2 * sin(pi * nyquist / srate))
+f = min(f, 0.99);
+q = 1 / slider2;  // Damping from Q
+
+@sample
+// --- Left channel ---
+hp_l = spl0 - lp_l - q * bp_l;
+bp_l = bp_l + f * hp_l;
+lp_l = lp_l + f * bp_l;
+
+// Select output
+slider3 == 0 ? spl0 = lp_l :    // Lowpass
+slider3 == 1 ? spl0 = bp_l :    // Bandpass
+slider3 == 2 ? spl0 = hp_l :    // Highpass
+spl0 = lp_l + hp_l;              // Notch (4th mode)
+
+// --- Right channel ---
+hp_r = spl1 - lp_r - q * bp_r;
+bp_r = bp_r + f * hp_r;
+lp_r = lp_r + f * bp_r;
+
+slider3 == 0 ? spl1 = lp_r :
+slider3 == 1 ? spl1 = bp_r :
+slider3 == 2 ? spl1 = hp_r :
+spl1 = lp_r + hp_r;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Cutoff | 20–20000 Hz (log) | 1000 | Filter center frequency |
+| Resonance | 0.1–10 | 1 | Q factor. 0.707 = Butterworth. High Q = resonant peak |
+| Output Mode | 0-3 | 0 (LP) | Lowpass, Bandpass, Highpass, Notch — all from one filter |
+
+## Use Case
+The most versatile filter in DSP. One instance gives you LP, BP, HP, and Notch simultaneously — just select the output mode. The SVF is numerically stable (unlike biquad at low frequencies) and efficient (2 multiplies per sample). Use for synths, EQ, and any application where you need multiple filter modes from one cutoff.
+
+## Compatibility
+- **Before**: Saturation, DC blocking
+- **After**: Delay, reverb, modulation
+- **Requires**: 2 state variables per channel (bp + lp)
+- **Conflicts**: Chamberlin SVF is unstable above ~6 kHz at 44.1 kHz sample rate. For high frequencies, use RBJ biquad instead
+
+## Source
+Chamberlin "Musical Applications of Microprocessors" (1985).
+Standard 2nd-order SVF topology. Referenced in FAUST `svfilter.lib` and
+Csound `svfilter` opcode. License: public domain.
+
+<!-- test: White noise. Mode=LP, sweep 20000→100 Hz. Should show smooth lowpass. Mode=BP should show peaked bandpass at cutoff. Q=5 should ring visibly. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsModulationBitcrusherRef = R"MD(# Bitcrusher (Lo-fi / Degradation)
+
+## Code
+```jsfx
+desc:Bitcrusher
+
+slider1:8<1,16,1>Bit Depth
+slider2:44100<1000,96000,100>Sample Rate (Hz)
+slider3:0<-20,20,0.1>Output Gain (dB)
+slider4:100<0,100,1>Mix (%)
+
+@init
+denorm = 1e-25;
+hold_l = hold_r = 0;
+sample_counter = 0;
+
+@slider
+bits = slider1;
+levels = 2^bits;
+sample_rate_div = srate / slider2;  // how many input samples per output sample
+out_gain = 10^(slider3 / 20);
+mix = slider4 / 100;
+
+@sample
+// --- Sample rate reduction (hold-and-sample) ---
+sample_counter += 1;
+sample_counter >= sample_rate_div ? (
+  sample_counter = 0;
+  hold_l = spl0;
+  hold_r = spl1;
+);
+
+// --- Bit depth reduction (quantization) ---
+// Quantize to 'levels' steps, centered at zero
+quant_l = floor(hold_l * levels / 2 + 0.5) / (levels / 2);
+quant_r = floor(hold_r * levels / 2 + 0.5) / (levels / 2);
+
+// Clamp to [-1, 1]
+quant_l = max(-1, min(1, quant_l));
+quant_r = max(-1, min(1, quant_r));
+
+// Mix dry and wet
+spl0 = spl0 * (1 - mix) + quant_l * out_gain * mix;
+spl1 = spl1 * (1 - mix) + quant_r * out_gain * mix;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Bit Depth | 1–16 | 8 | Number of bits. Lower = more quantization noise. 16 = no degradation |
+| Sample Rate | 1000–96000 Hz | 44100 | Virtual sample rate. Lower = more aliasing/hold noise |
+| Output Gain | -20 to +20 dB | 0 | Post-crush level |
+| Mix | 0–100% | 100% | Dry/wet blend |
+
+## Use Case
+Lo-fi degradation: retro game sounds, chip-tune aesthetics, industrial distortion, vocal电话 effect. Bit depth controls quantization noise (8-bit = NES, 4-bit = Atari). Sample rate reduction adds aliasing and "stepped" artifacts. Combine with saturation for tape-degradation effects.
+
+## Compatibility
+- **Before**: Saturation, EQ
+- **After**: Reverb, delay (to add space to the degraded sound)
+- **Requires**: Hold buffer for sample rate reduction
+- **Conflicts**: Multiple bitcrushers in series compound the degradation — usually one is enough
+
+## Source
+Standard quantization and decimation. Bit depth reduction via `floor(x * levels) / levels`.
+Sample rate reduction via hold-and-sample. License: public domain.
+
+<!-- test: Sine at 1 kHz. Bit Depth=4 should show visible staircasing. Sample Rate=2000 should show aliasing artifacts. Mix=50% blends clean and crushed. -->
+)MD";
+
 inline constexpr const char* kJsfxAlgorithmsModulationChorusFlangerRef = R"MD(# Chorus / Flanger (Modulation)
 
 ## Code
@@ -452,6 +698,69 @@ Chorus: thicken guitars, pads, vocals. Flanger: jet-plane swoosh, psychedelic te
 Multi-voice modulated delay chorus. Standard effect topology. Based on musicdsp.org chorus article and FAUST `phaflanger.lib`. License: public domain.
 
 <!-- test: Sine at 1 kHz. Rate=0.5Hz, Depth=5ms, Voices=2. Output should show periodic pitch modulation with stereo width from voice panning. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsModulationRingModulatorRef = R"MD(# Ring Modulator (Modulation)
+
+## Code
+```jsfx
+desc:Ring Modulator
+
+slider1:100<1,5000,1>Carrier Frequency (Hz)
+slider2:0<-20,20,0.1>Output Gain (dB)
+slider3:100<0,100,1>Dry/Wet Mix (%)
+
+@init
+denorm = 1e-25;
+phase = 0;
+
+@slider
+carrier_freq = slider1;
+out_gain = 10^(slider2 / 20);
+mix = slider3 / 100;
+
+@sample
+// Advance carrier oscillator phase
+phase += carrier_freq / srate;
+phase >= 1 ? phase -= 1;
+
+// Ring modulation: multiply input by carrier
+// Carrier is a sine wave at carrier_freq
+carrier = sin(phase * 2 * $pi);
+
+// Wet signal = input * carrier (classic ring mod)
+wet_l = spl0 * carrier;
+wet_r = spl1 * carrier;
+
+// Mix dry and wet
+spl0 = spl0 * (1 - mix) + wet_l * out_gain * mix;
+spl1 = spl1 * (1 - mix) + wet_r * out_gain * mix;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Carrier Frequency | 1–5000 Hz | 100 | Frequency of the modulation carrier. Lower = subtle, higher = metallic |
+| Output Gain | -20 to +20 dB | 0 | Wet signal level |
+| Dry/Wet Mix | 0–100% | 100% | 0% = dry, 100% = full ring mod |
+
+## Use Case
+Classic ring modulator effect: creates metallic, bell-like, and alien sounds by multiplying the input with a carrier oscillator. Used for vocal effects (Dalek voice), synthesizer sounds, and experimental sound design. At low carrier frequencies, creates tremolo. At high frequencies, creates inharmonic sidebands.
+
+## Compatibility
+- **Before**: Saturation (to shape the input before modulation)
+- **After**: Reverb (to add space to the metallic sound), delay
+- **Requires**: Phase accumulator for carrier oscillator
+- **Conflicts**: None — composable with everything
+
+## Source
+Classic amplitude modulation. Ring mod = multiplication of two signals.
+Standard DSP technique. License: public domain.
+
+<!-- test: Sine at 440 Hz. Carrier=100 Hz. Output should contain 340 Hz and 540 Hz sidebands (440±100). Carrier=2000 Hz should sound metallic/bell-like. -->
 )MD";
 
 inline constexpr const char* kJsfxAlgorithmsPitchPsolaPitchShiftRef = R"MD(# PSOLA Pitch Shift (Pitch)
@@ -629,6 +938,100 @@ Natural-sounding room/hall reverb. More computationally efficient than convoluti
 Feedback Delay Network (FDN) reverb. Based on FAUST `reverb.lib` and J. O. Smith's FDN formulation. Hadamard matrix for lossless feedback mixing. License: MIT-compatible (FAUST).
 
 <!-- test: Impulse. Decay=1s, Mix=1.0. Output should show dense reverb tail decaying over ~1 second. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsSynthesisKarplusStrongRef = R"MD(# Karplus-Strong String Synthesis (Synthesis)
+
+## Code
+```jsfx
+desc:Karplus-Strong Plucked String
+
+slider1:60<20,200,1>MIDI Note
+slider2:0.95<0.5,0.999,0.001>Decay
+slider3:0.5<0,1,0.01>Pick Position
+slider4:0<0,1,1{White Noise,Sawtooth}>Excitation
+slider5:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+buf_len = srate;  // 1 second max
+buf = 0; memset(buf, 0, buf_len);
+wpos = 0;
+delay_len = 0;
+note_on = 0;
+out_gain = 10^(slider5 / 20);
+
+@slider
+// Calculate delay length from MIDI note
+freq = 440 * 2^((slider1 - 69) / 12);
+delay_len = floor(srate / freq);
+decay = slider2;
+pick = slider3;
+excite_mode = slider4;
+out_gain = 10^(slider5 / 20);
+
+@block
+// Trigger: check for MIDI note on
+midirecv(offset, msg1, msg2, msg3) ? (
+  (msg1 & 0xF0) == 0x90 && msg3 > 0 ? (
+    // Note on: fill buffer with excitation
+    delay_len = floor(srate / (440 * 2^((msg2 - 69) / 12)));
+    i = 0;
+    while (i < delay_len) (
+      excite_mode == 0 ? (
+        // White noise excitation with pick position
+        pick_pos = i / delay_len;
+        buf[i] = (pick_pos < pick) ? rand(2) - 1 : 0;
+      ) : (
+        // Sawtooth excitation
+        buf[i] = (2 * (i / delay_len) - 1) * (i / delay_len < pick ? 1 : 0);
+      );
+      i += 1;
+    );
+    wpos = 0;
+    note_on = 1;
+  );
+);
+
+@sample
+// Read from buffer
+current = buf[wpos];
+// Write back: average of current and next sample (lowpass filter in feedback)
+// This is the key to Karplus-Strong: the delay line + averaging = decaying harmonics
+next = buf[(wpos + 1) % delay_len];
+buf[wpos] = (current + next) * 0.5 * decay;
+wpos = (wpos + 1) % delay_len;
+
+spl0 = current * out_gain;
+spl1 = current * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| MIDI Note | 20–200 | 60 (C3) | Pitch of the string (also responds to MIDI input) |
+| Decay | 0.5–0.999 | 0.95 | String decay rate. Higher = longer sustain |
+| Pick Position | 0–1 | 0.5 | Where on the string the pick strikes. 0=bridge, 0.5=middle, 1=nut |
+| Excitation | 0-1 | 0 (Noise) | White noise = plucked string, Sawtooth = bowed string |
+| Output | -12 to +12 dB | 0 | Output level |
+
+## Use Case
+Physical modeling synthesis of plucked strings (guitar, harp, koto). Send MIDI notes to trigger. The delay line length determines pitch, the averaging filter in the feedback creates the natural harmonic decay. Pick position controls timbre — picking near the bridge = brighter, near the middle = warmer.
+
+## Compatibility
+- **Before**: Not applicable (this is a generator, not a processor)
+- **After**: Reverb (to add room acoustics), chorus (to thicken), saturation
+- **Requires**: MIDI input for triggering, 1-second buffer
+- **Conflicts**: Monophonic — one note at a time. For polyphony, instantiate multiple times
+
+## Source
+Karplus & Strong "Digital Synthesis of Plucked-String and Drum Timbres"
+(Computer Music Journal, 1983). License: public domain (algorithm).
+
+<!-- test: Send MIDI note C3 (60). Should hear a plucked string sound that decays over ~2 seconds. Pick=0.1 should sound brighter (bridge picking). Pick=0.5 should sound warmer. -->
 )MD";
 
 inline constexpr const char* kJsfxDesignPatterns00ManifestoRef = R"MD(# DSP Design Manifesto
@@ -2277,9 +2680,14 @@ inline const std::unordered_map<std::string, std::string>& api_reference_map() {
         {"fx_chain-primitives/recipes/vocal-slap",            kFxChainPrimitivesRecipesVocalSlapRef},
         {"fx_chain_format",            kFxChainFormatRef},
         {"jsfx-algorithms/dynamics/rms-compressor",            kJsfxAlgorithmsDynamicsRmsCompressorRef},
+        {"jsfx-algorithms/filters/moog-ladder",            kJsfxAlgorithmsFiltersMoogLadderRef},
+        {"jsfx-algorithms/filters/svf-chamberlin",            kJsfxAlgorithmsFiltersSvfChamberlinRef},
+        {"jsfx-algorithms/modulation/bitcrusher",            kJsfxAlgorithmsModulationBitcrusherRef},
         {"jsfx-algorithms/modulation/chorus-flanger",            kJsfxAlgorithmsModulationChorusFlangerRef},
+        {"jsfx-algorithms/modulation/ring-modulator",            kJsfxAlgorithmsModulationRingModulatorRef},
         {"jsfx-algorithms/pitch/psola-pitch-shift",            kJsfxAlgorithmsPitchPsolaPitchShiftRef},
         {"jsfx-algorithms/reverb/fdn-reverb",            kJsfxAlgorithmsReverbFdnReverbRef},
+        {"jsfx-algorithms/synthesis/karplus-strong",            kJsfxAlgorithmsSynthesisKarplusStrongRef},
         {"jsfx-design-patterns/00-manifesto",            kJsfxDesignPatterns00ManifestoRef},
         {"jsfx-design-patterns/01-parameter-design",            kJsfxDesignPatterns01ParameterDesignRef},
         {"jsfx-design-patterns/02-signal-flow",            kJsfxDesignPatterns02SignalFlowRef},

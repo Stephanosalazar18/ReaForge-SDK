@@ -631,6 +631,529 @@ Feedback Delay Network (FDN) reverb. Based on FAUST `reverb.lib` and J. O. Smith
 <!-- test: Impulse. Decay=1s, Mix=1.0. Output should show dense reverb tail decaying over ~1 second. -->
 )MD";
 
+inline constexpr const char* kJsfxDesignPatterns00ManifestoRef = R"MD(# DSP Design Manifesto
+
+> **MANDATORY READING before generating ANY JSFX effect.**
+> If you skip this, your effect will have redundant sliders, poor gain staging,
+> and a confusing UI. Read ALL rules. They are non-negotiable.
+
+## Rule 1: One concept, one slider
+
+Every slider must change the sound audibly. If two controls do similar things, **merge them into a mode selector**.
+
+**Good**: `slider1:0<0,2,1{Straight,Dotted,Triplet}>Note Mode` — one control, three behaviors.
+**Bad**: `slider1:250<1,2000,1>Time (ms)` AND `slider2:0<0,2,1{Straight,Dotted,Triplet}>Mode` — redundant. If you have a mode, derive the time from BPM. If you have a time slider, let the user dial it in. **Never both.**
+
+## Rule 2: Respect the signal chain
+
+```
+DC block → EQ → Saturation → Compression → Delay → Reverb → Modulation → Pitch
+```
+
+- DC blocking ALWAYS after any saturation with drive > 2.0
+- Denormal prevention ALWAYS: `denorm = 1e-25;` in `@init` + `+=/-=` in `@sample`
+- EQ before saturation to shape WHICH frequencies distort
+- Compression after saturation to control the added harmonics
+- Delay before reverb (reverb adds space to the repeats)
+- Modulation last (chorus/flanger on the final sound)
+
+## Rule 3: Gain stage every stage
+
+After each processing block, output level ≈ input level. If a saturation stage adds 6 dB, add -6 dB makeup gain immediately after. Don't let the signal get louder or quieter with each stage — the user should be able to bypass the effect and hear the same volume.
+
+**Pattern**:
+```jsfx
+// After saturation
+spl0 *= makeup_gain;  // compensate for drive attenuation
+spl1 *= makeup_gain;
+```
+
+## Rule 4: Name sliders for musicians, not programmers
+
+| Bad (programmer) | Good (musician) |
+|---|---|
+| Lowpass Frequency | Warmth / Tone |
+| Asymmetry Bias | Character |
+| Feedback Delay Time | Space / Echoes |
+| RMS Window Size | Smoothness |
+| Biquad Q | Resonance |
+| Dry/Wet Mix | Mix |
+| Threshold (dB) | Sensitivity |
+
+If a parameter name requires DSP knowledge to understand, rename it.
+
+## Rule 5: Start simple, add complexity only when needed
+
+A 4-slider effect that sounds great > a 20-slider effect that's confusing.
+
+- Start with the minimum parameters that produce a usable sound
+- Hide advanced parameters with `sliderX:-Hidden parameter name`
+- If the user asks for more control, add it then
+- Default values should produce a good sound with zero adjustment
+
+## Rule 6: Always include infrastructure
+
+Every JSFX MUST include:
+
+```jsfx
+@init
+denorm = 1e-25;
+
+@sample
+// ... your DSP code ...
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+If your effect has saturation with drive > 2.0, ALSO include DC blocking after it.
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns01ParameterDesignRef = R"MD(# Parameter Design Patterns
+
+## Pattern 1: Mode selector vs. Separate sliders
+
+**When to use a mode selector (`sliderX:0<0,N,1{Option1,Option2,...}>`):**
+- The parameter has discrete, named options (dotted, triplet, straight)
+- The options are mutually exclusive
+- The user thinks in categories, not numbers
+
+**When to use a continuous slider:**
+- The parameter is a range (0-100%, 20-20000 Hz, -12 to +12 dB)
+- The user needs fine control
+- The value space is continuous
+
+**ANTI-PATTERN: Don't use BOTH for the same concept.**
+If you have a Mode selector, derive the actual value from it programmatically.
+If you have a continuous slider, let the user dial it in.
+Do NOT put both a mode selector and a slider for the same parameter.
+
+**Example: Delay time with tempo sync**
+```jsfx
+// GOOD: Mode selector drives the time
+slider1:0<0,3,1{Free,Straight,Dotted,Triplet}>Sync Mode
+slider2:120<40,300,1>BPM (Hidden)
+// In @slider: derive time from mode + BPM
+// In Free mode: use slider3 for manual ms
+slider3:250<1,2000,1>Time (ms, Free mode only)
+
+// BAD: Both slider AND mode for the same thing
+slider1:250<1,2000,1>Time (ms)
+slider2:0<0,2,1{Straight,Dotted,Triplet}>Mode
+// User doesn't know which one to use. Confusing.
+```
+
+## Pattern 2: Hidden sliders for internal state
+
+Use `sliderX:-Hidden parameter name` for:
+- Internal state the user shouldn't touch (envelope state, filter coefficients)
+- Parameters set once and forgotten (oscillator phase, buffer positions)
+- Debug values that only matter during development
+- BPM sync source (set automatically, not user-adjustable)
+
+```jsfx
+slider20:120<40,300,1>-BPM (auto-synced)
+slider21:0<0,1,1>-Internal smoothing state
+```
+
+## Pattern 3: Group related parameters
+
+Organize sliders in logical groups. REAPER displays them in order.
+
+```jsfx
+// Input section (sliders 1-3)
+slider1:0<-24,24,0.1>Input Gain (dB)
+slider2:0<0,1,1{Peak,RMS}>Detection Mode
+
+// Processing section (sliders 4-7)
+slider4:-12<-60,0,0.1>Threshold (dB)
+slider5:4<1,20,0.1>Ratio
+slider6:10<0.1,100,0.1>Attack (ms)
+slider7:50<10,500,1>Release (ms)
+
+// Output section (sliders 8-9)
+slider8:0<-12,12,0.1>Makeup Gain (dB)
+slider9:100<0,100,1>Mix (%)
+```
+
+## Pattern 4: Tempo sync pattern
+
+When an effect supports tempo sync, use this pattern:
+
+```jsfx
+slider1:0<0,1,1{Free,Sync}>Time Mode
+// Free mode: manual time
+slider2:250<1,2000,1>Time (ms)
+// Sync mode: note division
+slider3:0<0,5,1{1/4,1/8,1/16,1/4T,1/8T,1/16T}>Note Division
+
+@slider
+time_mode == 0 ? (
+  delay_samples = slider2 / 1000 * srate;
+) : (
+  // Derive from BPM + note division
+  beat_samples = 60 / tempo * srate;  // tempo is a JSFX built-in
+  division_factor = (slider3 == 0) ? 1 :    // 1/4
+                    (slider3 == 1) ? 0.5 :  // 1/8
+                    (slider3 == 2) ? 0.25 : // 1/16
+                    (slider3 == 3) ? 0.75 : // 1/4T (triplet)
+                    (slider3 == 4) ? 0.375 : // 1/8T
+                    0.1875;                   // 1/16T
+  delay_samples = beat_samples * division_factor;
+);
+```
+
+## Pattern 5: Dry/wet mix
+
+Always use a single Mix slider, not separate Dry and Wet sliders:
+
+```jsfx
+// GOOD: Single mix slider
+slider9:50<0,100,1>Mix (%)
+
+@sample
+mix = slider9 / 100;
+spl0 = spl0 * (1 - mix) + wet_l * mix;
+spl1 = spl1 * (1 - mix) + wet_r * mix;
+
+// BAD: Separate dry and wet (confusing, redundant)
+slider9:0<-20,20,0.1>Dry (dB)
+slider10:0<-20,20,0.1>Wet (dB)
+```
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns02SignalFlowRef = R"MD(# Signal Flow Patterns
+
+## Canonical order
+
+```
+Input → DC Block → EQ → Saturation → Compression → Delay → Reverb → Modulation → Pitch → Output
+```
+
+This order exists for acoustic reasons:
+- DC block first: clean the signal before anything
+- EQ before saturation: shape WHICH frequencies distort
+- Saturation before compression: saturate the peaks, then control them
+- Compression after saturation: tame the harmonics that saturation added
+- Delay before reverb: reverb adds space to the repeats
+- Modulation last: chorus/flanger on the final sound
+- Pitch last: pitch shifting works best on a stable signal
+
+## Serial vs. Parallel routing
+
+### Serial (default)
+Each stage feeds the next. Simple, predictable, CPU-efficient.
+```jsfx
+@sample
+spl0 = dc_block(spl0);
+spl0 = eq(spl0);
+spl0 = saturate(spl0);
+spl0 = compress(spl0);
+```
+
+### Parallel (for wet/dry or multi-band)
+Split the signal, process independently, mix back.
+```jsfx
+@sample
+dry_l = spl0;
+wet_l = saturate(spl0);
+spl0 = dry_l * (1 - mix) + wet_l * mix;
+```
+
+### Multi-band (for compressors, saturators)
+Split into frequency bands, process each, sum back.
+```jsfx
+@sample
+// Split into 3 bands
+low = lowpass(spl0, 200);
+mid = bandpass(spl0, 200, 2000);
+high = highpass(spl0, 2000);
+// Process each band independently
+low = compress(low, threshold_low);
+mid = compress(mid, threshold_mid);
+high = compress(high, threshold_high);
+// Sum
+spl0 = low + mid + high;
+```
+
+## Feedback paths
+
+Feedback loops require careful design:
+- Always include a gain coefficient < 1.0 to prevent runaway
+- Always include DC blocking in the feedback path
+- Smooth parameter changes to avoid clicks in the feedback
+
+```jsfx
+@sample
+// Feedback delay with safety
+feedback = delay_buffer[rpos] * feedback_gain;  // feedback_gain < 1.0
+feedback = dc_block(feedback);                   // prevent DC buildup
+delay_buffer[wpos] = spl0 + feedback;
+```
+
+## Sidechain routing
+
+For sidechain compression, the detection signal is separate from the audio:
+
+```jsfx
+@sample
+// Audio path
+spl0 = spl0 * gain_reduction;
+spl1 = spl1 * gain_reduction;
+
+// Detection path (separate)
+detector = sidechain_input;  // could be another track, or a filtered version
+gain_reduction = compressor_gain(detector, threshold, ratio);
+```
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns03UiConventionsRef = R"MD(# UI Conventions for JSFX
+
+## Slider ordering
+
+REAPER displays sliders in numerical order (slider1, slider2, ...). Group them logically:
+
+```
+1-3:   Input controls (gain, drive, threshold)
+4-7:   Processing controls (the effect's core parameters)
+8-10:  Output controls (makeup gain, mix, output level)
+11+:   Advanced/hidden controls
+```
+
+## Slider naming conventions
+
+| Category | Convention | Examples |
+|---|---|---|
+| Gain | "(dB)" suffix | "Input Gain (dB)", "Makeup Gain (dB)" |
+| Time | "(ms)" or "(s)" suffix | "Attack (ms)", "Decay (s)" |
+| Frequency | "(Hz)" suffix | "Cutoff (Hz)", "Center Freq (Hz)" |
+| Percentage | "(%)" suffix | "Mix (%)", "Width (%)" |
+| Ratios | "(:1)" suffix | "Ratio (:1)" |
+| Modes | Enum with descriptive labels | "{Peak,RMS}", "{Free,Sync}" |
+| Musical | No suffix, use musical terms | "Warmth", "Character", "Space" |
+
+## @gfx section (optional but recommended for complex effects)
+
+```jsfx
+@gfx 300 200
+// Clear background
+gfx_clear = 0x202020;
+
+// Draw title
+gfx_r = gfx_g = gfx_b = 1;
+gfx_x = 10; gfx_y = 10;
+gfx_drawstr("Effect Name");
+
+// Draw parameter values
+gfx_x = 10; gfx_y = 30;
+gfx_printf("Drive: %.1f", slider1);
+gfx_x = 10; gfx_y = 50;
+gfx_printf("Output: %.1f dB", slider2);
+```
+
+## Metering (optional)
+
+For dynamics effects, show gain reduction:
+
+```jsfx
+@gfx 300 100
+// Gain reduction meter
+gr_db = 20 * log10(max(env_l, 0.0001));
+gr_normalized = min(1, -gr_db / 20);  // 0 to 1, 20dB reduction = full
+gfx_r = 0.8; gfx_g = 0.2; gfx_b = 0.2;
+gfx_rect(10, 10, gr_normalized * 200, 20);
+```
+
+## Tag conventions
+
+Use `desc:` and `tags:` for discoverability:
+
+```jsfx
+desc:My Effect Name
+//tags: delay modulation tempo-sync
+//author: ReaForge
+```
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns04GainStagingRef = R"MD(# Gain Staging Patterns
+
+## Principle: output ≈ input at every stage
+
+When a user bypasses your effect, they should hear the same volume. If your effect makes the signal louder or quieter, the user has to readjust their mix — that's bad design.
+
+## Pattern 1: Makeup gain after saturation
+
+Saturation reduces peak level (tanh asymptotically approaches 1.0). Compensate:
+
+```jsfx
+@sample
+// Saturation
+out = tanh(in * drive);
+// Makeup: drive=1 → no compensation, drive=10 → +20dB compensation
+compensation = 1 / tanh(drive);  // approximate
+out *= compensation * makeup_slider;
+```
+
+## Pattern 2: Dry/wet with constant power
+
+When mixing dry and wet, use equal-power crossfade to avoid volume dips:
+
+```jsfx
+@sample
+mix = slider_mix / 100;
+// Equal-power: dry_gain = cos(mix * pi/2), wet_gain = sin(mix * pi/2)
+dry_gain = cos(mix * $pi / 2);
+wet_gain = sin(mix * $pi / 2);
+spl0 = spl0 * dry_gain + wet_l * wet_gain;
+spl1 = spl1 * dry_gain + wet_r * wet_gain;
+```
+
+## Pattern 3: Filter compensation
+
+Resonant filters can boost the signal at the cutoff frequency. Add a gain trim:
+
+```jsfx
+@sample
+out = biquad(in);
+// If Q > 1, the peak at cutoff can be up to +Q*3 dB
+// Compensate: reduce output by the expected peak
+peak_compensation = 1 / (1 + (slider_q - 0.707) * 0.5);
+out *= peak_compensation;
+```
+
+## Pattern 4: Compression output matching
+
+A compressor reduces peaks. Add makeup gain to restore the perceived loudness:
+
+```jsfx
+@sample
+// Compression
+gain_reduction = compute_gr(input, threshold, ratio);
+out = input * gain_reduction;
+// Makeup: approximately compensate for the average gain reduction
+// The user adjusts this by ear, but provide a sensible default
+out *= makeup_gain;
+```
+
+## Pattern 5: Multi-stage gain budget
+
+For complex effects with multiple stages, track the cumulative gain:
+
+```jsfx
+@init
+total_gain_db = 0;
+
+@slider
+// Each stage contributes to the total
+stage1_gain = 10^(slider_drive / 20);     // +X dB from drive
+stage1_loss = 1 / tanh(slider_drive);     // -Y dB from saturation
+stage2_gain = 10^(slider_makeup / 20);    // +Z dB from makeup
+// Total should be ≈ 0 dB
+total_gain = stage1_gain * stage1_loss * stage2_gain;
+```
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns05AntiPatternsRef = R"MD(# Anti-Patterns: What NOT to do
+
+## 1. Redundant sliders for the same concept
+
+**Bad**: Time slider AND mode selector for delay time.
+```jsfx
+slider1:250<1,2000,1>Time (ms)
+slider2:0<0,2,1{Straight,Dotted,Triplet}>Mode
+```
+**Why it's bad**: The user doesn't know which one controls the delay. If mode is "Dotted", does the time slider still apply? It's ambiguous.
+**Fix**: Use mode selector, derive time from BPM. Or use time slider, no mode.
+
+## 2. Missing denormal prevention
+
+**Bad**: No `denorm` in a JSFX with feedback loops or filters.
+**Why it's bad**: Silent sections cause CPU spikes (100% core usage). REAPER freezes.
+**Fix**: Always include `denorm = 1e-25;` in `@init` and `+=/-=` in `@sample`.
+
+## 3. Missing DC blocking after saturation
+
+**Bad**: Asymmetric tanh without DC blocking.
+**Why it's bad**: DC offset accumulates, causes clicks when the signal hits the next stage, reduces headroom, messes up meters.
+**Fix**: Add a DC blocking filter after any saturation with drive > 2.0 or bias > 0.
+
+## 4. No gain staging
+
+**Bad**: Saturation with drive=10 but no makeup gain.
+**Why it's bad**: The output is much quieter than the input. The user has to crank their mixer to compensate, introducing noise.
+**Fix**: Add a makeup gain slider. Default to approximately compensating for the drive.
+
+## 5. Too many sliders
+
+**Bad**: 20 visible sliders for a simple delay.
+**Why it's bad**: The user is overwhelmed. They can't find the parameter they want. The UI is cluttered.
+**Fix**: Start with 4-6 sliders. Hide advanced parameters with `-Hidden`.
+
+## 6. Programmer-named sliders
+
+**Bad**: `slider1:0.707<0.1,4,0.01>Biquad Q Factor`
+**Why it's bad**: "Biquad Q Factor" means nothing to a musician.
+**Fix**: `slider1:0.707<0.1,4,0.01>Resonance`
+
+## 7. No dry/wet mix
+
+**Bad**: Effect is 100% wet, no mix control.
+**Why it's bad**: The user can't blend the effect with the original signal. They have to use REAPER's dry/wet which doesn't sound as good.
+**Fix**: Always include a Mix slider (0-100%).
+
+## 8. Unstable feedback
+
+**Bad**: Feedback gain can exceed 1.0.
+**Why it's bad**: The feedback loop runs away, volume increases exponentially, speakers blow out.
+**Fix**: Clamp feedback gain: `fb = min(fb, 0.99);`
+
+## 9. No smoothing on parameter changes
+
+**Bad**: Changing a slider causes an audible click.
+**Why it's bad**: Automating parameters sounds terrible.
+**Fix**: Smooth parameter changes in @block:
+```jsfx
+@block
+target_freq = slider1;
+current_freq = current_freq * 0.999 + target_freq * 0.001;
+```
+
+## 10. Buffer too small
+
+**Bad**: 100ms buffer for a 2-second delay.
+**Why it's bad**: The delay wraps around and you hear the wrong audio.
+**Fix**: Calculate buffer size from the maximum possible delay time: `buf_len = srate * max_delay_seconds;`
+
+## 11. No `@serialize` for state preservation
+
+**Bad**: Filter state is lost when REAPER saves/loads the project.
+**Why it's bad**: The filter "jumps" when reopening a project.
+**Fix**: Use `@serialize` to save/restore internal state.
+
+## 12. Separate Dry and Wet sliders
+
+**Bad**: `slider9:0<-20,20>Dry (dB)` AND `slider10:0<-20,20>Wet (dB)`
+**Why it's bad**: Redundant. The user has to adjust two sliders to change one thing (the mix).
+**Fix**: Single `Mix (%)` slider.
+
+## 13. No tempo sync option
+
+**Bad**: Delay only has manual ms, no way to sync to BPM.
+**Why it's bad**: If the user changes tempo, they have to manually adjust the delay time.
+**Fix**: Add a Free/Sync mode selector (see parameter design pattern 4).
+
+## 14. Clipping at the output
+
+**Bad**: No output level control, signal can exceed 0 dBFS.
+**Why it's bad**: Digital clipping, harsh sound, damaged speakers.
+**Fix**: Add an output gain slider. Optionally add a soft clipper at the output: `spl0 = tanh(spl0);`
+
+## 15. Ignoring stereo
+
+**Bad**: Processing only spl0, ignoring spl1.
+**Why it's bad**: The right channel is silent or unprocessed.
+**Fix**: Always process both channels. If the effect is mono, sum to mono first, then duplicate to both outputs.
+)MD";
+
 inline constexpr const char* kJsfxPrimitivesDelaysFeedbackDelayRef = R"MD(# Feedback Delay (Delays)
 
 ## Code
@@ -1603,6 +2126,12 @@ inline const std::unordered_map<std::string, std::string>& api_reference_map() {
         {"jsfx-algorithms/modulation/chorus-flanger",            kJsfxAlgorithmsModulationChorusFlangerRef},
         {"jsfx-algorithms/pitch/psola-pitch-shift",            kJsfxAlgorithmsPitchPsolaPitchShiftRef},
         {"jsfx-algorithms/reverb/fdn-reverb",            kJsfxAlgorithmsReverbFdnReverbRef},
+        {"jsfx-design-patterns/00-manifesto",            kJsfxDesignPatterns00ManifestoRef},
+        {"jsfx-design-patterns/01-parameter-design",            kJsfxDesignPatterns01ParameterDesignRef},
+        {"jsfx-design-patterns/02-signal-flow",            kJsfxDesignPatterns02SignalFlowRef},
+        {"jsfx-design-patterns/03-ui-conventions",            kJsfxDesignPatterns03UiConventionsRef},
+        {"jsfx-design-patterns/04-gain-staging",            kJsfxDesignPatterns04GainStagingRef},
+        {"jsfx-design-patterns/05-anti-patterns",            kJsfxDesignPatterns05AntiPatternsRef},
         {"jsfx-primitives/delays/feedback-delay",            kJsfxPrimitivesDelaysFeedbackDelayRef},
         {"jsfx-primitives/delays/modulated-delay",            kJsfxPrimitivesDelaysModulatedDelayRef},
         {"jsfx-primitives/delays/ping-pong-delay",            kJsfxPrimitivesDelaysPingPongDelayRef},

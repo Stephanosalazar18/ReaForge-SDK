@@ -58,5 +58,10 @@ std::size_t MainThreadQueue::size() const {
     return queue_.size();
 }
 
+MainThreadQueue& global_queue() {
+    static MainThreadQueue instance;
+    return instance;
 }
-}
+
+} // namespace host
+} // namespace reaforge

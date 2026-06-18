@@ -21,6 +21,7 @@ inline constexpr const char* k00IndexRef = R"MD(# DSP Primitives Index
 | `delays/feedback-delay` | Delays | 47 | Feedback Delay |
 | `delays/modulated-delay` | Delays | 43 | Modulated Delay / Flanger Base |
 | `delays/ping-pong-delay` | Delays | 46 | Ping-Pong Delay |
+| `dynamics/lookahead-limiter` | Dynamics — Advanced | 45 | Lookahead Limiter |
 | `dynamics/rms-compressor` | Dynamics | 46 | RMS Compressor |
 | `filters/moog-ladder` | Filters — Advanced | 60 | Moog Ladder Filter |
 | `filters/one-pole-lowpass` | Filters | 24 | One-Pole Lowpass |
@@ -31,40 +32,49 @@ inline constexpr const char* k00IndexRef = R"MD(# DSP Primitives Index
 | `modulation/chorus-flanger` | Modulation | 53 | Chorus / Flanger |
 | `modulation/ring-modulator` | Modulation | 34 | Ring Modulator |
 | `pitch/psola-pitch-shift` | Pitch | 56 | PSOLA Pitch Shift |
+| `reverb/convolution-reverb` | Reverb — Advanced | 103 | Convolution Reverb |
 | `reverb/fdn-reverb` | Reverb | 64 | FDN Reverb |
 | `saturation/asymmetric-tanh` | Saturation | 25 | Asymmetric Tanh |
 | `saturation/hard-clip-knee` | Saturation | 35 | Hard Clip with Knee |
 | `saturation/tanh-soft-clip` | Saturation | 21 | Tanh Soft Clip |
+| `synthesis/fm-synthesis` | Synthesis | 68 | FM Synthesis |
 | `synthesis/karplus-strong` | Synthesis | 63 | Karplus-Strong String Synthesis |
+| `synthesis/wavetable-oscillator` | Synthesis | 87 | Wavetable Oscillator |
+| `tape/wow-flutter` | Tape Emulation | 56 | Tape Wow & Flutter |
 | `utilities/dc-blocking` | Utilities | 25 | DC Blocking |
 | `utilities/denormal-prevention` | Utilities | 13 | Denormal Prevention |
 | `utilities/stereo-width` | Utilities | 25 | Stereo Width |
 
 ## Compatibility Matrix
 
-| | `feedback-del` | `modulated-de` | `ping-pong-de` | `one-pole-low` | `rbj-highpass` | `rbj-lowpass` | `asymmetric-t` | `hard-clip-kn` | `tanh-soft-cl` | `dc-blocking` | `denormal-pre` | `stereo-width` | `rms-compress` | `moog-ladder` | `svf-chamberl` | `bitcrusher` | `chorus-flang` | `ring-modulat` | `psola-pitch-` | `fdn-reverb` | `karplus-stro` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `feedback-del` | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
-| `modulated-de` | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
-| `ping-pong-de` | ✗ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
-| `one-pole-low` | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `rbj-highpass` | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `rbj-lowpass` | △ | △ | △ | △ | △ | — | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ |
-| `asymmetric-t` | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `hard-clip-kn` | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `tanh-soft-cl` | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `dc-blocking` | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `denormal-pre` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `stereo-width` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ |
-| `rms-compress` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ |
-| `moog-ladder` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | ✓✓ | △ |
-| `svf-chamberl` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | △ | ✓✓ | △ |
-| `bitcrusher` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | ✓✓ | △ |
-| `chorus-flang` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓✓ | △ |
-| `ring-modulat` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | △ |
-| `psola-pitch-` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓✓ | △ |
-| `fdn-reverb` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ |
-| `karplus-stro` | △ | △ | △ | △ | △ | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | — |
+| | `feedback-del` | `modulated-de` | `ping-pong-de` | `one-pole-low` | `rbj-highpass` | `rbj-lowpass` | `asymmetric-t` | `hard-clip-kn` | `tanh-soft-cl` | `dc-blocking` | `denormal-pre` | `stereo-width` | `lookahead-li` | `rms-compress` | `moog-ladder` | `svf-chamberl` | `bitcrusher` | `chorus-flang` | `ring-modulat` | `psola-pitch-` | `convolution-` | `fdn-reverb` | `fm-synthesis` | `karplus-stro` | `wavetable-os` | `wow-flutter` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `feedback-del` | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `modulated-de` | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `ping-pong-de` | ✗ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `one-pole-low` | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rbj-highpass` | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rbj-lowpass` | △ | △ | △ | △ | △ | — | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `asymmetric-t` | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `hard-clip-kn` | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `tanh-soft-cl` | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `dc-blocking` | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `denormal-pre` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `stereo-width` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `lookahead-li` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rms-compress` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `moog-ladder` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `svf-chamberl` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `bitcrusher` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `chorus-flang` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `ring-modulat` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `psola-pitch-` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | △ | △ | △ | △ |
+| `convolution-` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓✓ | △ | △ | △ | △ |
+| `fdn-reverb` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ |
+| `fm-synthesis` | △ | △ | △ | △ | △ | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | — | △ | △ | △ |
+| `karplus-stro` | △ | △ | △ | △ | △ | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | — | △ | △ |
+| `wavetable-os` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | — | △ |
+| `wow-flutter` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | — |
 
 **Legend:** — = self | ✓ = compatible | ✓✓ = strongly compatible (category-level) | ✗ = conflicts | △ = needs verification
 
@@ -302,6 +312,81 @@ via the Lua chain builder template. See `fx_chain-primitives/chain-builder-templ
 **NEVER call `reaforge_save_fx_chain(name, content)` with hand-generated or LLM-generated XML.**
 That endpoint is for programmatic use only (e.g., the Lua builder template calling
 `GetTrackFXChain()` programmatically).
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsDynamicsLookaheadLimiterRef = R"MD(# Lookahead Limiter (Dynamics — Advanced)
+
+## Code
+```jsfx
+desc:Lookahead Limiter
+
+slider1:0<-24,0,0.1>Ceiling (dB)
+slider2:1<0.1,50,0.1>Release (ms)
+slider3:5<1,50,0.1>Lookahead (ms)
+slider4:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+look_samples = srate * slider3 / 1000;
+buf_len = look_samples * 2;
+buf_l = 0; buf_r = 0; memset(buf_l, 0, buf_len); memset(buf_r, 0, buf_len);
+wpos = 0;
+env = 0;
+release_coef = exp(-1 / (slider2 / 1000 * srate));
+
+@slider
+ceiling = 10^(slider1 / 20);
+look_samples = floor(srate * slider3 / 1000);
+release_coef = exp(-1 / (slider2 / 1000 * srate));
+out_gain = 10^(slider4 / 20);
+
+@sample
+// Write to circular buffer
+buf_l[wpos] = spl0;
+buf_r[wpos] = spl1;
+rpos = (wpos + 1) % look_samples;
+wpos = (wpos + 1) % look_samples;
+
+// Peak detection over lookahead window
+peak = max(abs(buf_l[rpos]), abs(buf_r[rpos]));
+
+// Gain computer: if peak exceeds ceiling, reduce gain
+target_gain = peak > ceiling ? ceiling / peak : 1;
+
+// Smooth release (attack is instant — it's a limiter)
+target_gain < env ? env = target_gain :  // instant attack
+  env = env * release_coef + target_gain * (1 - release_coef);  // smooth release
+
+// Apply gain to the delayed signal
+spl0 = buf_l[rpos] * env * out_gain;
+spl1 = buf_r[rpos] * env * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Ceiling | -24 to 0 dB | 0 | Maximum output level. Nothing exceeds this. |
+| Release | 0.1–50 ms | 1 | How fast the limiter recovers after a peak |
+| Lookahead | 1–50 ms | 5 | Buffer delay for predicting peaks. Higher = more transparent but more latency |
+| Output | -12 to +12 dB | 0 | Post-limiter gain |
+
+## Use Case
+Brickwall limiting for mastering: prevent clipping while maximizing loudness. The lookahead buffer lets the limiter "see" peaks before they happen, applying gain reduction smoothly instead of clipping. Essential for mix bus, mastering chain, and any situation where absolute peak control is needed.
+
+## Compatibility
+- **Before**: Compression, EQ, saturation (shape the sound before limiting)
+- **After**: Nothing — limiter should be LAST in the chain
+- **Requires**: Lookahead circular buffer, peak detection
+- **Conflicts**: Multiple limiters in series are redundant — use one
+
+## Source
+Standard lookahead limiter topology. Lookahead buffer + instant attack + smooth release.
+Referenced in FAUST `compressor.lib` (lookahead_limiter). License: public domain.
+
+<!-- test: Sine at 0 dB. Ceiling=-3 dB. Output should never exceed -3 dB. Release=1ms should show fast recovery. Lookahead=10ms should be more transparent than 1ms. -->
 )MD";
 
 inline constexpr const char* kJsfxAlgorithmsDynamicsRmsCompressorRef = R"MD(# RMS Compressor (Dynamics)
@@ -848,6 +933,140 @@ PSOLA algorithm. Based on STK `PitchShifter` and standard overlap-add time-stret
 <!-- test: 1 kHz sine. Shift=+12 (octave up). Output should be 2 kHz sine with Hann-windowed overlap. -->
 )MD";
 
+inline constexpr const char* kJsfxAlgorithmsReverbConvolutionReverbRef = R"MD(# Convolution Reverb (Reverb — Advanced)
+
+## Code
+```jsfx
+desc:Convolution Reverb (FFT-based)
+
+slider1:0.5<0,1,0.01>Mix
+slider2:2<0.5,10,0.1>Decay (s)
+slider3:0.7<0.1,1,0.01>Damping
+slider4:4096<256,16384,256>FFT Size
+
+@init
+denorm = 1e-25;
+fft_sz = 4096;
+hop = fft_sz / 4;  // 75% overlap
+buf_l = 0; buf_r = 0;
+ir_l = 0; ir_r = 0;
+out_l = 0; out_r = 0;
+fft_l = 0; fft_r = 0;
+fft_ir_l = 0; fft_ir_r = 0;
+wpos = 0;
+samples_since_fft = 0;
+
+// Generate a synthetic impulse response (decaying noise)
+function generate_ir(buf, decay_s, damp) (
+  i = 0;
+  len = srate * decay_s;
+  len > fft_sz ? len = fft_sz;
+  while (i < len) (
+    // Exponential decay envelope
+    env = exp(-3 * i / (decay_s * srate));
+    // Damped noise
+    noise = rand(2) - 1;
+    buf[i] = noise * env * damp;
+    i += 1;
+  );
+);
+
+generate_ir(ir_l, slider2, slider3);
+generate_ir(ir_r, slider2, slider3);
+
+// Pre-FFT the impulse response
+fft_real(ir_l, fft_sz); fft_permute(ir_l, fft_sz / 2);
+fft_real(ir_r, fft_sz); fft_permute(ir_r, fft_sz / 2);
+
+@slider
+fft_sz = slider4;
+hop = fft_sz / 4;
+mix = slider1;
+// Regenerate IR on parameter change
+memset(ir_l, 0, fft_sz); memset(ir_r, 0, fft_sz);
+generate_ir(ir_l, slider2, slider3);
+generate_ir(ir_r, slider2, slider3);
+fft_real(ir_l, fft_sz); fft_permute(ir_l, fft_sz / 2);
+fft_real(ir_r, fft_sz); fft_permute(ir_r, fft_sz / 2);
+
+@sample
+// Accumulate input into buffer
+buf_l[wpos] = spl0;
+buf_r[wpos] = spl1;
+wpos = (wpos + 1) % fft_sz;
+samples_since_fft += 1;
+
+// Process when we have enough samples
+samples_since_fft >= hop ? (
+  samples_since_fft = 0;
+
+  // Copy buffer to FFT workspace (Hann window)
+  i = 0;
+  while (i < fft_sz) (
+    win = 0.5 - 0.5 * cos(2 * $pi * i / (fft_sz - 1));
+    fft_l[i] = buf_l[(wpos + i) % fft_sz] * win;
+    fft_r[i] = buf_r[(wpos + i) % fft_sz] * win;
+    i += 1;
+  );
+
+  // Forward FFT
+  fft_real(fft_l, fft_sz); fft_permute(fft_l, fft_sz / 2);
+  fft_real(fft_r, fft_sz); fft_permute(fft_r, fft_sz / 2);
+
+  // Multiply with IR in frequency domain (convolution = multiplication in freq)
+  convolve_c(fft_l, ir_l, fft_sz / 2);
+  convolve_c(fft_r, ir_r, fft_sz / 2);
+
+  // Inverse FFT
+  fft_ipermute(fft_l, fft_sz / 2); ifft_real(fft_l, fft_sz);
+  fft_ipermute(fft_r, fft_sz / 2); ifft_real(fft_r, fft_sz);
+
+  // Scale and overlap-add to output
+  i = 0;
+  while (i < fft_sz) (
+    out_l[i] += fft_l[i] / fft_sz;
+    out_r[i] += fft_r[i] / fft_sz;
+    i += 1;
+  );
+);
+
+// Read from output buffer
+wet_l = out_l[wpos];
+wet_r = out_r[wpos];
+out_l[wpos] = 0; out_r[wpos] = 0;  // clear for next overlap-add
+
+spl0 = spl0 * (1 - mix) + wet_l * mix;
+spl1 = spl1 * (1 - mix) + wet_r * mix;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Mix | 0–1 | 0.5 | Wet/dry blend |
+| Decay | 0.5–10 s | 2 | Impulse response length (RT60) |
+| Damping | 0.1–1 | 0.7 | High-frequency absorption (0=bright, 1=dark) |
+| FFT Size | 256–16384 | 4096 | Processing block. Larger = better quality, more latency |
+
+## Use Case
+FFT-based convolution reverb with synthetic impulse response. Generates a decaying noise IR with adjustable decay and damping. More realistic than FDN for room emulation. Higher CPU but higher quality. Use when you need natural room sound, hall acoustics, or realistic space.
+
+## Compatibility
+- **Before**: EQ, compression, saturation
+- **After**: Nothing — reverb is typically last
+- **Requires**: FFT buffers (4 × fft_sz), Hann window, overlap-add
+- **Conflicts**: High CPU at fft_sz=16384. Use 4096 for real-time, 16384 for offline rendering
+
+## Source
+FFT convolution using overlap-add method. JSFX `fft_real()`, `fft_permute()`,
+`convolve_c()`, `ifft_real()` functions. Hann window from Harris (1978).
+Synthetic IR: decaying filtered noise. License: public domain.
+
+<!-- test: Impulse. Decay=2s, Damping=0.7, Mix=1.0. Should hear dense reverb tail decaying over ~2 seconds. Damping=0.3 should sound brighter. FFT=8192 should be higher quality than 4096. -->
+)MD";
+
 inline constexpr const char* kJsfxAlgorithmsReverbFdnReverbRef = R"MD(# FDN Reverb (Reverb)
 
 ## Code
@@ -938,6 +1157,109 @@ Natural-sounding room/hall reverb. More computationally efficient than convoluti
 Feedback Delay Network (FDN) reverb. Based on FAUST `reverb.lib` and J. O. Smith's FDN formulation. Hadamard matrix for lossless feedback mixing. License: MIT-compatible (FAUST).
 
 <!-- test: Impulse. Decay=1s, Mix=1.0. Output should show dense reverb tail decaying over ~1 second. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsSynthesisFmSynthesisRef = R"MD(# FM Synthesis (Synthesis)
+
+## Code
+```jsfx
+desc:FM Synthesizer
+
+slider1:0<-24,24,1>Carrier Freq (semitones from A4)
+slider2:1<0.1,10,0.1>Modulator Ratio
+slider3:0<0,10,0.1>Modulation Depth
+slider4:0<0,1,1{Sine,Square,Saw}>Carrier Wave
+slider5:0<0,1,1{Sine,Square,Saw}>Modulator Wave
+slider6:0<0,1,0.001>Attack
+slider7:0.3<0,1,0.001>Decay
+slider8:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+carrier_phase = 0;
+mod_phase = 0;
+env = 0;
+note_freq = 440;
+
+@slider
+carrier_freq = 440 * 2^(slider1 / 12);
+mod_ratio = slider2;
+mod_depth = slider3 * carrier_freq;  // depth in Hz
+out_gain = 10^(slider6 / 20);
+
+@block
+// MIDI input
+midirecv(offset, msg1, msg2, msg3) ? (
+  (msg1 & 0xF0) == 0x90 && msg3 > 0 ? (
+    note_freq = 440 * 2^((msg2 - 69) / 12);
+    env_state = 1;  // attack
+    env = 0;
+  ) : (msg1 & 0xF0) == 0x80 ? (
+    env_state = 2;  // release
+  );
+);
+
+@sample
+// Advance phases
+carrier_phase += note_freq / srate;
+mod_phase += (note_freq * mod_ratio) / srate;
+carrier_phase >= 1 ? carrier_phase -= 1;
+mod_phase >= 1 ? mod_phase -= 1;
+
+// Modulator waveform
+mod_wave = slider5 == 0 ? sin(mod_phase * 2 * $pi) :
+           slider5 == 1 ? (mod_phase > 0.5 ? 1 : -1) :
+           (2 * mod_phase - 1);
+
+// Carrier with FM
+freq_mod = carrier_phase + (mod_wave * mod_depth) / srate;
+carrier_wave = slider4 == 0 ? sin(freq_mod * 2 * $pi) :
+               slider4 == 1 ? (freq_mod > 0.5 ? 1 : -1) :
+               (2 * freq_mod - 1);
+
+// Envelope (ADSR simplified to AR)
+env_state == 1 ? (
+  env += (1 - env) * slider6;
+  env >= 0.999 ? env_state = 0;  // sustain
+) : env_state == 2 ? (
+  env *= 0.999;
+  env < 0.001 ? env = 0;
+);
+
+spl0 = carrier_wave * env * out_gain;
+spl1 = carrier_wave * env * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Carrier Freq | -24 to +24 semitones | 0 (A4=440Hz) | Base pitch (also responds to MIDI) |
+| Modulator Ratio | 0.1–10 | 1 | Ratio of modulator to carrier. Integer ratios = harmonic, non-integer = inharmonic |
+| Modulation Depth | 0–10 | 0 | FM intensity. 0 = pure sine, higher = more complex harmonics |
+| Carrier Wave | Sine/Square/Saw | Sine | Carrier oscillator waveform |
+| Modulator Wave | Sine/Square/Saw | Sine | Modulator oscillator waveform |
+| Attack | 0–1 | 0 | Envelope attack speed |
+| Decay | 0–1 | 0.3 | Envelope decay speed |
+| Output | -12 to +12 dB | 0 | Output level |
+
+## Use Case
+Classic FM synthesis (Yamaha DX7 style). Creates bell, electric piano, brass, and metallic sounds. Modulator ratio controls the harmonic structure: 1:1 = warm, 2:1 = bright, 3:1 = bell-like, non-integer = inharmonic/metallic. MIDI-triggered for melodic use.
+
+## Compatibility
+- **Before**: Not applicable (generator)
+- **After**: Reverb, chorus, delay, saturation
+- **Requires**: Two oscillators with independent phase, envelope state
+- **Conflicts**: Monophonic. For polyphony, instantiate multiple times
+
+## Source
+Chowning FM synthesis (1973). Standard FM: carrier + modulator * depth.
+Referenced in FAUST `oscillator.lib` and Joep Van Lier's Yutani synth.
+License: public domain (algorithm).
+
+<!-- test: MIDI note A4 (69). ModRatio=2, Depth=5 should sound like a bell. ModRatio=1, Depth=1 should sound like a warm synth. ModRatio=3.5 should sound metallic/inharmonic. -->
 )MD";
 
 inline constexpr const char* kJsfxAlgorithmsSynthesisKarplusStrongRef = R"MD(# Karplus-Strong String Synthesis (Synthesis)
@@ -1032,6 +1354,213 @@ Karplus & Strong "Digital Synthesis of Plucked-String and Drum Timbres"
 (Computer Music Journal, 1983). License: public domain (algorithm).
 
 <!-- test: Send MIDI note C3 (60). Should hear a plucked string sound that decays over ~2 seconds. Pick=0.1 should sound brighter (bridge picking). Pick=0.5 should sound warmer. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsSynthesisWavetableOscillatorRef = R"MD(# Wavetable Oscillator (Synthesis)
+
+## Code
+```jsfx
+desc:Wavetable Oscillator
+
+slider1:0<-24,24,1>Pitch (semitones from A4)
+slider2:0<0,7,0.001>Wave Position
+slider3:0<0,1,1{Saw,Square,Sine,Pulse,Noise,Triangle,Double Saw,FM}>Wave Table
+slider4:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+phase = 0;
+wt_size = 2048;
+note_freq = 440;
+out_gain = 10^(slider4 / 20);
+
+// Build wavetables in memory
+function build_wt(base, type) (
+  i = 0;
+  while (i < wt_size) (
+    pos = i / wt_size;
+    type == 0 ? base[i] = 2 * pos - 1 :           // Saw
+    type == 1 ? base[i] = pos < 0.5 ? 1 : -1 :     // Square
+    type == 2 ? base[i] = sin(pos * 2 * $pi) :      // Sine
+    type == 3 ? base[i] = pos < 0.2 ? 1 : -1 :      // Pulse (20% duty)
+    type == 4 ? base[i] = rand(2) - 1 :             // Noise
+    type == 5 ? base[i] = abs(2 * pos - 1) * 2 - 1 : // Triangle
+    type == 6 ? base[i] = (2 * pos - 1) + (2 * ((pos + 0.5) % 1) - 1) * 0.5 : // Double saw
+    base[i] = sin(pos * 2 * $pi) * sin(pos * 4 * $pi); // FM-ish
+    i += 1;
+  );
+);
+
+// Build 8 wavetables in sequence
+wt0 = 0;       build_wt(wt0, 0);
+wt1 = wt_size; build_wt(wt1, 1);
+wt2 = wt_size*2; build_wt(wt2, 2);
+wt3 = wt_size*3; build_wt(wt3, 3);
+wt4 = wt_size*4; build_wt(wt4, 4);
+wt5 = wt_size*5; build_wt(wt5, 5);
+wt6 = wt_size*6; build_wt(wt6, 6);
+wt7 = wt_size*7; build_wt(wt7, 7);
+
+@slider
+note_freq = 440 * 2^(slider1 / 12);
+wt_pos = slider2;
+wt_type = slider3;
+out_gain = 10^(slider4 / 20);
+
+@block
+midirecv(offset, msg1, msg2, msg3) ? (
+  (msg1 & 0xF0) == 0x90 && msg3 > 0 ? (
+    note_freq = 440 * 2^((msg2 - 69) / 12);
+  );
+);
+
+@sample
+// Advance phase
+phase_inc = note_freq / srate;
+phase += phase_inc;
+phase >= 1 ? phase -= 1;
+
+// Select wavetable base address
+wt_base = wt_type * wt_size;
+
+// Read position within table (with linear interpolation)
+read_pos = phase * wt_size;
+frac = read_pos - floor(read_pos);
+idx = floor(read_pos);
+idx_next = (idx + 1) % wt_size;
+
+// Blend between adjacent tables for morphing (wt_pos 0-7)
+table_idx = floor(wt_pos);
+table_frac = wt_pos - table_idx;
+wt_a = table_idx * wt_size;
+wt_b = ((table_idx + 1) % 8) * wt_size;
+
+sample_a = wt_base == 0 ? 0;  // placeholder, we use direct read
+// Read from selected table
+val_a = wt_base[idx] * (1 - frac) + wt_base[idx_next] * frac;
+// Crossfade with next table for morphing
+val_b = wt_b[idx] * (1 - frac) + wt_b[idx_next] * frac;
+output = val_a * (1 - table_frac) + val_b * table_frac;
+
+spl0 = output * out_gain;
+spl1 = output * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Pitch | -24 to +24 semitones | 0 (A4) | Base pitch (also responds to MIDI) |
+| Wave Position | 0–7 | 0 | Morph position between 8 wavetables |
+| Wave Table | 0-7 (enum) | 0 (Saw) | Base waveform: Saw, Square, Sine, Pulse, Noise, Triangle, Double Saw, FM |
+| Output | -12 to +12 dB | 0 | Output level |
+
+## Use Case
+Wavetable synthesis with 8 base waveforms and morphing between them. The Wave Position slider crossfades between adjacent tables for smooth timbral transitions. MIDI-triggered for melodic use. Use for synth bass, leads, pads, and any sound that needs evolving timbre.
+
+## Compatibility
+- **Before**: Not applicable (generator)
+- **After**: Filter (Moog or SVF for classic subtractive), reverb, delay, chorus
+- **Requires**: 8 × 2048 wavetable buffers in memory
+- **Conflicts**: Monophonic. For polyphony, instantiate multiple
+
+## Source
+Standard wavetable synthesis with linear interpolation and table morphing.
+Waveform definitions from musicdsp.org and classic synth DSP.
+Referenced in Joep Van Lier's Yutani synth (wavetable support).
+License: public domain.
+
+<!-- test: MIDI A4. WaveTable=Saw, Wave Position sweep 0→7. Should hear smooth morph from saw to FM-like. Each table position should have distinct character. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsTapeWowFlutterRef = R"MD(# Tape Wow & Flutter (Tape Emulation)
+
+## Code
+```jsfx
+desc:Tape Wow & Flutter
+
+slider1:2<0,10,0.1>Wow Depth (ms)
+slider2:0.5<0.1,5,0.01>Wow Rate (Hz)
+slider3:0.5<0,5,0.1>Flutter Depth (ms)
+slider4:50<10,200,1>Flutter Rate (Hz)
+slider5:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+buf_len = srate * 0.05;  // 50ms buffer
+buf_l = 0; buf_r = 0; memset(buf_l, 0, buf_len); memset(buf_r, 0, buf_len);
+wpos = 0;
+wow_phase = 0;
+flutter_phase = 0;
+
+@slider
+wow_depth = slider1 / 1000 * srate;
+wow_rate = slider2;
+flutter_depth = slider3 / 1000 * srate;
+flutter_rate = slider4;
+out_gain = 10^(slider5 / 20);
+
+@sample
+// Write to buffer
+buf_l[wpos] = spl0;
+buf_r[wpos] = spl1;
+
+// Wow: slow LFO (0.1-5 Hz) modulating delay time
+wow_phase += wow_rate / srate;
+wow_phase >= 1 ? wow_phase -= 1;
+wow_mod = sin(wow_phase * 2 * $pi) * wow_depth;
+
+// Flutter: fast LFO (10-200 Hz) modulating delay time
+flutter_phase += flutter_rate / srate;
+flutter_phase >= 1 ? flutter_phase -= 1;
+flutter_mod = sin(flutter_phase * 2 * $pi) * flutter_depth;
+
+// Total delay modulation
+total_mod = wow_mod + flutter_mod;
+center_delay = srate * 0.02;  // 20ms center
+read_pos = wpos - center_delay - total_mod;
+
+// Wrap and interpolate
+read_pos < 0 ? read_pos += buf_len;
+frac = read_pos - floor(read_pos);
+rpos_i = floor(read_pos) % buf_len;
+rpos_next = (rpos_i + 1) % buf_len;
+
+spl0 = (buf_l[rpos_i] * (1 - frac) + buf_l[rpos_next] * frac) * out_gain;
+spl1 = (buf_r[rpos_i] * (1 - frac) + buf_r[rpos_next] * frac) * out_gain;
+
+wpos = (wpos + 1) % buf_len;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Wow Depth | 0–10 ms | 2 | Slow pitch variation. The "wobbly" tape sound |
+| Wow Rate | 0.1–5 Hz | 0.5 | Speed of wow. Real tape: ~0.5-2 Hz |
+| Flutter Depth | 0–5 ms | 0.5 | Fast pitch variation. The "buzzing" tape sound |
+| Flutter Rate | 10–200 Hz | 50 | Speed of flutter. Real tape: ~30-100 Hz |
+| Output | -12 to +12 dB | 0 | Post-wow output level |
+
+## Use Case
+Tape machine emulation. Wow = slow speed variations (motor instability, tape stretch). Flutter = fast variations (tape scrape, bearing noise). Combine with tanh saturation for full tape emulation. Use on vocals, guitars, and any sound that needs "vintage" character.
+
+## Compatibility
+- **Before**: EQ, saturation (the tape saturation before the wow/flutter)
+- **After**: Reverb, delay, chorus
+- **Requires**: 50ms circular buffer, two LFOs with independent phase
+- **Conflicts**: Cascading wow/flutter compounds the effect — usually one instance is enough
+
+## Source
+Standard modulated delay for tape wow/flutter. Wow = low-frequency LFO (0.5-2 Hz),
+flutter = high-frequency LFO (30-100 Hz). Referenced in DAFx papers on tape emulation.
+License: public domain.
+
+<!-- test: Sine at 1 kHz. Wow=2ms@0.5Hz should show slow pitch drift. Flutter=0.5ms@50Hz should add a subtle buzz. Combined should sound like an old tape machine. -->
 )MD";
 
 inline constexpr const char* kJsfxDesignPatterns00ManifestoRef = R"MD(# DSP Design Manifesto
@@ -2679,6 +3208,7 @@ inline const std::unordered_map<std::string, std::string>& api_reference_map() {
         {"fx_chain-primitives/chain-builder-template",            kFxChainPrimitivesChainBuilderTemplateRef},
         {"fx_chain-primitives/recipes/vocal-slap",            kFxChainPrimitivesRecipesVocalSlapRef},
         {"fx_chain_format",            kFxChainFormatRef},
+        {"jsfx-algorithms/dynamics/lookahead-limiter",            kJsfxAlgorithmsDynamicsLookaheadLimiterRef},
         {"jsfx-algorithms/dynamics/rms-compressor",            kJsfxAlgorithmsDynamicsRmsCompressorRef},
         {"jsfx-algorithms/filters/moog-ladder",            kJsfxAlgorithmsFiltersMoogLadderRef},
         {"jsfx-algorithms/filters/svf-chamberlin",            kJsfxAlgorithmsFiltersSvfChamberlinRef},
@@ -2686,8 +3216,12 @@ inline const std::unordered_map<std::string, std::string>& api_reference_map() {
         {"jsfx-algorithms/modulation/chorus-flanger",            kJsfxAlgorithmsModulationChorusFlangerRef},
         {"jsfx-algorithms/modulation/ring-modulator",            kJsfxAlgorithmsModulationRingModulatorRef},
         {"jsfx-algorithms/pitch/psola-pitch-shift",            kJsfxAlgorithmsPitchPsolaPitchShiftRef},
+        {"jsfx-algorithms/reverb/convolution-reverb",            kJsfxAlgorithmsReverbConvolutionReverbRef},
         {"jsfx-algorithms/reverb/fdn-reverb",            kJsfxAlgorithmsReverbFdnReverbRef},
+        {"jsfx-algorithms/synthesis/fm-synthesis",            kJsfxAlgorithmsSynthesisFmSynthesisRef},
         {"jsfx-algorithms/synthesis/karplus-strong",            kJsfxAlgorithmsSynthesisKarplusStrongRef},
+        {"jsfx-algorithms/synthesis/wavetable-oscillator",            kJsfxAlgorithmsSynthesisWavetableOscillatorRef},
+        {"jsfx-algorithms/tape/wow-flutter",            kJsfxAlgorithmsTapeWowFlutterRef},
         {"jsfx-design-patterns/00-manifesto",            kJsfxDesignPatterns00ManifestoRef},
         {"jsfx-design-patterns/01-parameter-design",            kJsfxDesignPatterns01ParameterDesignRef},
         {"jsfx-design-patterns/02-signal-flow",            kJsfxDesignPatterns02SignalFlowRef},

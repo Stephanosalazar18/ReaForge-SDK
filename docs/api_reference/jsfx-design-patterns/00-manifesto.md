@@ -65,7 +65,15 @@ Every JSFX MUST include:
 ```jsfx
 @init
 denorm = 1e-25;
+```
 
+**`1e-25` is scientific notation — a SINGLE numeric literal.**
+It means `0.00000000000000000000000001`.
+Do NOT write `1 <!> e-25` or `1 * e^(-25)` or `1 * exp(-25)`.
+The `e` in `1e-25` is part of the number, NOT Euler's number.
+Euler's number in JSFX is `$e` (with dollar sign).
+
+```jsfx
 @sample
 // ... your DSP code ...
 spl0 += denorm; spl0 -= denorm;

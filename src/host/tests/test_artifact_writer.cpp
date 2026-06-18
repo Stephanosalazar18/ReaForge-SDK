@@ -43,7 +43,7 @@ static void test_name_regex() {
 
 static void test_save_jsfx_creates_file() {
     fs::path tmp = make_fixture("jsfx_ok");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
 
     auto r = save_jsfx("tape_sat", "desc:tape\n", false);
     check(r.ok, "save_jsfx ok");
@@ -57,7 +57,7 @@ static void test_save_jsfx_creates_file() {
 
 static void test_save_jsfx_refuses_overwrite() {
     fs::path tmp = make_fixture("jsfx_dup");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
 
     auto first = save_jsfx("foo", "v1", false);
     check(first.ok, "first save_jsfx ok");
@@ -73,7 +73,7 @@ static void test_save_jsfx_refuses_overwrite() {
 
 static void test_overwrite_replaces() {
     fs::path tmp = make_fixture("jsfx_ow");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     auto a = save_jsfx("bar", "v1", false);
     check(a.ok, "first save ok");
     auto b = save_jsfx("bar", "v2_replaced", true);
@@ -86,7 +86,7 @@ static void test_overwrite_replaces() {
 
 static void test_save_lua_no_register() {
     fs::path tmp = make_fixture("lua_basic");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     auto r = save_lua("hello", "-- hi\n", false, false);
     check(r.ok, "save_lua ok without register");
     check(!r.action_id.has_value(), "action_id absent when register_action=false");
@@ -96,19 +96,22 @@ static void test_save_lua_no_register() {
 
 static void test_save_lua_with_register_mock() {
     fs::path tmp = make_fixture("lua_reg");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
-    int unreg_calls = 0;
-    int reg_calls = 0;
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    // The mock lambda may be invoked while the main_thread_queue lock is held
+    // (see artifact_writer::ensure_default_fn). Use atomics to avoid data races
+    // that can deadlock or cause undefined behavior under MSVC's lock checker.
+    std::atomic<int> unreg_calls{0};
+    std::atomic<int> reg_calls{0};
     std::atomic<int> captured_id{0};
     set_add_remove_reascript(
         [&unreg_calls, &reg_calls, &captured_id](bool add, int /*sectionID*/,
-                                                const char* /*path*/, bool /*commit*/) -> int {
+                                                 const char* /*path*/, bool /*commit*/) -> int {
             if (add) {
-                reg_calls++;
-                captured_id = 1234;
+                reg_calls.fetch_add(1);
+                captured_id.store(1234);
                 return 1234;
             }
-            unreg_calls++;
+            unreg_calls.fetch_add(1);
             return 0;
         });
     auto r = save_lua("reg_me", "-- x\n", true, false);
@@ -122,7 +125,7 @@ static void test_save_lua_with_register_mock() {
 
 static void test_register_failed_does_not_lose_file() {
     fs::path tmp = make_fixture("lua_fail");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     set_add_remove_reascript(
         [](bool, int, const char*, bool) -> int { return -1; });  // always fail
     (void)0;
@@ -137,7 +140,7 @@ static void test_register_failed_does_not_lose_file() {
 
 static void test_save_fx_chain() {
     fs::path tmp = make_fixture("fxchain_ok");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     std::string content = "<FXCHAIN>\n<FX ID=\"VST:ReaEQ\">\n</FX>\n</FXCHAIN>\n";
     auto r = save_fx_chain("vocal_slap", content, false);
     check(r.ok, "save_fx_chain ok");
@@ -150,7 +153,7 @@ static void test_save_fx_chain() {
 
 static void test_atomic_write_leaves_no_tmp() {
     fs::path tmp = make_fixture("atomic");
-    ::setenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
+    setenv_or_putenv("REAFORGE_FIXTURE_DIR", tmp.string().c_str(), 1);
     auto r = save_jsfx("clean", "X", false);
     check(r.ok, "save ok");
     // After successful write, no .tmp should remain.

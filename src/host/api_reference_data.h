@@ -9,122 +9,3067 @@
 namespace reaforge {
 namespace host {
 
-inline constexpr const char* kJsxRef = R"MD(# JSFX Cheatsheet
+inline constexpr const char* k00IndexRef = R"MD(# DSP Primitives Index
 
-> Minimum vocabulary to write a working REAPER JSFX. The full language reference is REAPER's built-in JSFX help (F1 in the JSFX editor); this file is the LLM-grounded version that fits in a single context.
+## Signal Chain Order
+**utilities → filters → saturation → dynamics → delays → reverb → modulation → pitch**
 
-## File format
+## Primitive Catalog
 
-A `.jsfx` file is plain text. REAPER scans `<REAPER resource>/Effects/<dir>/*.jsfx` and `<REAPER resource>/Effects/ReaForge/*.jsfx` (the ReaForge convention). The filename (minus `.jsfx`) is the FX identifier in the FX browser.
+| Target Key | Category | Lines | Description |
+|---|---|---|---|
+| `delays/feedback-delay` | Delays | 47 | Feedback Delay |
+| `delays/modulated-delay` | Delays | 43 | Modulated Delay / Flanger Base |
+| `delays/ping-pong-delay` | Delays | 46 | Ping-Pong Delay |
+| `dynamics/lookahead-limiter` | Dynamics — Advanced | 45 | Lookahead Limiter |
+| `dynamics/rms-compressor` | Dynamics | 46 | RMS Compressor |
+| `filters/moog-ladder` | Filters — Advanced | 60 | Moog Ladder Filter |
+| `filters/one-pole-lowpass` | Filters | 24 | One-Pole Lowpass |
+| `filters/rbj-highpass` | Filters | 42 | RBJ Highpass |
+| `filters/rbj-lowpass` | Filters | 44 | RBJ Lowpass |
+| `filters/svf-chamberlin` | SVF) — Chamberlin (Filters — Advanced | 41 | State Variable Filter |
+| `modulation/bitcrusher` | Lo-fi / Degradation | 43 | Bitcrusher |
+| `modulation/chorus-flanger` | Modulation | 53 | Chorus / Flanger |
+| `modulation/ring-modulator` | Modulation | 34 | Ring Modulator |
+| `pitch/psola-pitch-shift` | Pitch | 56 | PSOLA Pitch Shift |
+| `reverb/convolution-reverb` | Reverb — Advanced | 103 | Convolution Reverb |
+| `reverb/fdn-reverb` | Reverb | 64 | FDN Reverb |
+| `saturation/asymmetric-tanh` | Saturation | 25 | Asymmetric Tanh |
+| `saturation/hard-clip-knee` | Saturation | 35 | Hard Clip with Knee |
+| `saturation/tanh-soft-clip` | Saturation | 21 | Tanh Soft Clip |
+| `synthesis/fm-synthesis` | Synthesis | 68 | FM Synthesis |
+| `synthesis/karplus-strong` | Synthesis | 63 | Karplus-Strong String Synthesis |
+| `synthesis/wavetable-oscillator` | Synthesis | 87 | Wavetable Oscillator |
+| `tape/wow-flutter` | Tape Emulation | 56 | Tape Wow & Flutter |
+| `utilities/dc-blocking` | Utilities | 25 | DC Blocking |
+| `utilities/denormal-prevention` | Utilities | 13 | Denormal Prevention |
+| `utilities/stereo-width` | Utilities | 25 | Stereo Width |
 
-## Block structure
+## Compatibility Matrix
 
-Every JSFX has these blocks, in this order. All are optional except `desc:`.
+| | `feedback-del` | `modulated-de` | `ping-pong-de` | `one-pole-low` | `rbj-highpass` | `rbj-lowpass` | `asymmetric-t` | `hard-clip-kn` | `tanh-soft-cl` | `dc-blocking` | `denormal-pre` | `stereo-width` | `lookahead-li` | `rms-compress` | `moog-ladder` | `svf-chamberl` | `bitcrusher` | `chorus-flang` | `ring-modulat` | `psola-pitch-` | `convolution-` | `fdn-reverb` | `fm-synthesis` | `karplus-stro` | `wavetable-os` | `wow-flutter` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `feedback-del` | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `modulated-de` | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `ping-pong-de` | ✗ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `one-pole-low` | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rbj-highpass` | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rbj-lowpass` | △ | △ | △ | △ | △ | — | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `asymmetric-t` | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `hard-clip-kn` | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `tanh-soft-cl` | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `dc-blocking` | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `denormal-pre` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `stereo-width` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `lookahead-li` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `rms-compress` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ |
+| `moog-ladder` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `svf-chamberl` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | ✓✓ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `bitcrusher` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `chorus-flang` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `ring-modulat` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | ✓✓ | △ | △ | △ | △ |
+| `psola-pitch-` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | ✓✓ | △ | △ | △ | △ |
+| `convolution-` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | ✓✓ | △ | △ | △ | △ |
+| `fdn-reverb` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | — | △ | △ | △ | △ |
+| `fm-synthesis` | △ | △ | △ | △ | △ | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | — | △ | △ | △ |
+| `karplus-stro` | △ | △ | △ | △ | △ | △ | ✓✓ | ✓✓ | ✓✓ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | — | △ | △ |
+| `wavetable-os` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | — | △ |
+| `wow-flutter` | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | ✓✓ | △ | △ | △ | — |
 
+**Legend:** — = self | ✓ = compatible | ✓✓ = strongly compatible (category-level) | ✗ = conflicts | △ = needs verification
+
+## Mandatory Composition Rules
+
+1. **DC blocking AFTER any saturation primitive with drive > 2.0**
+2. **Denormal prevention ALWAYS include `denorm = 1e-25;` + `+=/-=` pattern**
+3. **Category order: utilities → filters → saturation → dynamics → delays → reverb → modulation → pitch**
+4. **EQ before saturation to shape which frequencies distort**
+5. **Gain stage between primitives: output level ≈ input level**
+
+---
+Generated by `tools/gen_dsp_index.py`. Regenerate after adding or modifying primitives.)MD";
+
+inline constexpr const char* kFxChainPrimitivesChainBuilderTemplateRef = R"MD(# FX Chain Builder — Lua Script Template
+
+Builds an FX chain on the currently selected track, exports it to
+`FXChains/ReaForge/<name>.RfxChain`, then unregisters itself from the
+Action List. The user runs this ONCE from Actions → it does its job and
+disappears.
+
+## How it works
+
+1. **LLM** fills `{{FX_NAMES}}` and `{{FX_PARAMS}}` with the desired chain
+2. LLM calls `reaforge_save_lua("build_{{CHAIN_NAME}}", script, register_action=true)`
+3. **User** opens Actions → finds `build_{{CHAIN_NAME}}` → runs it
+4. Script adds FX to the **selected track**, sets params, exports the
+   chain to `FXChains/ReaForge/`, and **unregisters itself**
+5. Chain file is ready. Builder action is gone.
+
+No tracks are created or deleted — the FX are applied to whatever track
+the user has selected when they run the action.
+
+## Template
+
+```lua
+-- Auto-generated FX chain builder for "{{CHAIN_NAME}}"
+-- Run ONCE from Actions. Applies FX to selected track, exports chain,
+-- then unregisters itself.
+
+local fx_names = {{FX_NAMES}}
+local fx_params = {{FX_PARAMS}}
+local chain_name = "{{CHAIN_NAME}}"
+-- REAPER resource path + folder where this script lives
+local resource_path = reaper.GetResourcePath()
+local script_dir = resource_path .. "/Scripts/ReaForge"
+local script_filename = "build_" .. chain_name .. ".lua"
+local script_full_path = script_dir .. "/" .. script_filename
+
+-- Helper: try multiple name formats for a plugin
+local function add_fx_by_name(track, names)
+    local variants = type(names) == "table" and names or {names}
+    for _, v_name in ipairs(variants) do
+        local idx = reaper.TrackFX_AddByName(track, v_name, false, 1)
+        if idx >= 0 then
+            reaper.ShowConsoleMsg("Added: " .. v_name .. " (idx=" .. idx .. ")\n")
+            return idx
+        end
+    end
+    reaper.ShowConsoleMsg("FAILED: " .. table.concat(variants, ", ") .. "\n")
+    return -1
+end
+
+-- Get the selected track, or create one if nothing selected
+local track = reaper.GetSelectedTrack(0, 0)
+if not track then
+    reaper.InsertTrackAtIndex(0, true)
+    track = reaper.GetTrack(0, 0)
+    reaper.SetTrackSelected(track, true)
+    reaper.ShowConsoleMsg("No track selected — created a new one.\n")
+end
+
+-- Add each FX
+for i, names in ipairs(fx_names) do
+    local idx = add_fx_by_name(track, names)
+    -- Set parameters
+    if idx >= 0 then
+        local params = fx_params[i - 1]  -- 0-indexed
+        if params then
+            for param_id, value in pairs(params) do
+                reaper.TrackFX_SetParam(track, idx, param_id, value)
+            end
+        end
+    end
+end
+
+-- Export the chain
+local resource_path = reaper.GetResourcePath()
+local chain_dir = resource_path .. "/FXChains/ReaForge"
+reaper.RecursiveCreateDirectory(chain_dir, 0)
+local chain_path = chain_dir .. "/" .. chain_name .. ".RfxChain"
+
+local ok, chain_data = reaper.GetTrackFXChain(track, 0)
+if ok and chain_data and #chain_data > 0 then
+    local f = io.open(chain_path, "wb")
+    if f then
+        f:write(chain_data)
+        f:close()
+        reaper.ShowConsoleMsg("Chain saved: " .. chain_path .. "\n")
+    else
+        reaper.ShowConsoleMsg("FAILED to write: " .. chain_path .. "\n")
+    end
+else
+    reaper.ShowConsoleMsg("GetTrackFXChain failed (REAPER 6.x+ required).\n")
+    reaper.ShowConsoleMsg("Manual: right-click FX chain -> Save chain as... -> " .. chain_path .. "\n")
+end
+
+-- Unregister this action so it disappears from the Action List
+reaper.AddRemoveReaScript(false, 0, script_full_path, true)
+reaper.ShowConsoleMsg("Action unregistered: " .. script_filename .. " at " .. script_full_path .. "\n")
 ```
-desc: <one-line description shown in the FX browser>
-// optional @init, @slider, @block, @sample, @gfx blocks
-```
 
-| Block | Frequency | Purpose |
+## Placeholder Guide
+
+| Placeholder | Type | Example |
 |---|---|---|
-| `desc:` | once | **Required.** The FX name/description. |
-| `@init` | once, on load | Initialize state, set defaults, allocate buffers. |
-| `@slider` | on slider change | Read `sliderN` values when the user moves a knob. |
-| `@block` | per audio buffer | Process whole-buffer logic (e.g., set `spl0` once per block). |
-| `@sample` | per audio sample | Per-sample DSP. **This is where most audio code lives.** |
-| `@gfx` | on UI redraw | Custom UI (sliders, meters). |
+| `{{CHAIN_NAME}}` | string | `"vocal_slap"` |
+| `{{FX_NAMES}}` | Lua table of strings or tables | `{{"VST: ReaDelay (Cockos)", "VST: ReaEQ (Cockos)"}}` |
+| `{{FX_PARAMS}}` | Lua table: `{[fx_index] = {[param_id] = value}}` | `{[0] = {[0] = 0.25}, [1] = {[0] = 0.5}}` |
 
-## Sliders (the user-facing knobs)
+## Multi-format name resolution
 
-Declare in the header (top of file) — these become the FX UI:
+Each entry in `fx_names` can be a **string** or a **table of alternates**:
 
+```lua
+-- Single format:
+{"VST: ReaDelay (Cockos)"}
+
+-- Multiple fallbacks (first match wins):
+{{"VST: ReaDelay (Cockos)", "VST3: ReaDelay (Cockos)", "JS: ReaDelay"}}
 ```
-desc: Tape Saturation
-slider1:0<0,100,1>Drive (%)     // int 0-100
-slider2:1<0,1,0.01>Mix          // float 0-1
-slider3:8000<200,20000,10>HP (Hz)
+)MD";
+
+inline constexpr const char* kFxChainPrimitivesRecipesVocalSlapRef = R"MD(# Vocal Slap FX Chain Recipe
+
+## Ingredients
+
+| Order | FX | Purpose |
+|---|---|---|
+| 1 | ReaDelay (Cockos) | Slap delay (~150ms, single tap) |
+| 2 | ReaEQ (Cockos) | Low-pass 12kHz, high-pass 80Hz, gentle scoop at 2.5kHz |
+
+## Completed Placeholders (for chain-builder-template)
+
+```lua
+local fx_names = {
+    {{"VST: ReaDelay (Cockos)", "VST3: ReaDelay (Cockos)", "JS: ReaDelay"}},
+    {{"VST: ReaEQ (Cockos)", "VST3: ReaEQ (Cockos)", "JS: ReaEQ"}}
+}
+
+local fx_params = {
+    [0] = {  -- ReaDelay
+        [0] = 0.25,   -- Length (150ms / 600ms max ≈ 0.25)
+        [1] = 0.05,   -- Feedback (-45 dB → almost zero)
+        [2] = 1.0,    -- Wet 100%
+        [3] = 0.0,    -- Dry 0%
+        [4] = 0.5,    -- Low-pass filter freq (12 kHz / 20 kHz max ≈ 0.5)
+        [5] = 0.08,   -- High-pass filter freq (80 Hz / 1000 Hz max ≈ 0.08)
+    },
+    [1] = {  -- ReaEQ
+        [0] = 0.5,    -- Band 1 type (0.5 = HPF)
+        [1] = 1.0,    -- Band 1 enabled
+        [2] = 0.08,   -- Band 1 freq (80 Hz)
+        [3] = 0.5,    -- Band 1 Q (0.707 ≈ 0.5)
+        [4] = 0.0,    -- Band 1 gain
+        [5] = 1.0,    -- Band 2 type (0.5 = Bell)
+        [6] = 1.0,    -- Band 2 enabled
+        [7] = 0.45,   -- Band 2 freq (2.5 kHz ≈ 0.45 on log scale)
+        [8] = 0.35,   -- Band 2 Q (1.0 ≈ 0.35)
+        [9] = 0.375,  -- Band 2 gain (-3 dB on -12 to +12 range ≈ 0.375)
+        [10] = 0.5 + 2.0/24,  -- Band 3 type (0.5 = Bell)
+        [11] = 1.0,   -- Band 3 enabled
+        [12] = 0.62,  -- Band 3 freq (4.5 kHz ≈ 0.62)
+        [13] = 0.35,  -- Band 3 Q (1.0 ≈ 0.35)
+        [14] = 0.417, -- Band 3 gain (-2 dB ≈ 0.417)
+    }
+}
+
+local chain_name = "vocal_slap"
 ```
 
-Syntax: `sliderN:default<min,max,step>Label (units)`. `slider1`-`slider64` are valid.
+## Parameter Scale Reference
 
-## Built-in variables
+- **ReaDelay Length**: 0–1 maps to 0–600 ms. `0.25` ≈ 150 ms.
+- **ReaDelay Feedback**: 0–1 maps to -120 to 0 dB. `0.05` ≈ -45 dB.
+- **ReaDelay LP cutoff**: 0–1 maps to 20–20000 Hz (log). `0.5` ≈ 12 kHz.
+- **ReaDelay HP cutoff**: 0–1 maps to 20–1000 Hz (log). `0.08` ≈ 80 Hz.
+- **ReaEQ Frequency**: 0–1 maps to 20–24000 Hz (log). `0.45` ≈ 2.5 kHz.
+- **ReaEQ Gain**: 0–1 maps to -12 to +12 dB. Center = 0.5. Formula: `0.5 + dB/24`.
+- **ReaEQ Q**: 0–1 maps to 0.1–4.0. 0.707 ≈ `0.2`, 1.0 ≈ `0.35`.
 
-| Variable | Meaning |
-|---|---|
-| `spl0`, `spl1`, ... | Input sample for channels 0, 1, ... (set these to produce output) |
-| `srate` | Sample rate in Hz (e.g., 48000) |
-| `samplesblock` | Number of samples in the current audio block |
-| `numchan` | Number of I/O channels (2 for stereo) |
-| `slider1`-`slider64` | Slider values (read-only inside `@sample`) |
-| `t` | Current time in seconds |
+## User Flow
 
-## Common DSP idioms
+1. LLM generates the script via `reaforge_save_lua("build_vocal_slap", script, register_action=true)`
+2. User selects a vocal track in REAPER
+3. User opens Actions → finds `build_vocal_slap` → runs it
+4. ReaDelay + ReaEQ are added to the track, chain exported to `FXChains/ReaForge/vocal_slap.RfxChain`
+5. The action unregisters itself — gone from the Action List
 
-### Bypass (always do this)
+## Manual Verification
+
+If the script fails, create the chain manually:
+1. Add ReaDelay → set Length=150ms, Feedback=-45dB, Wet=100%, Dry=0%, LP=12kHz, HP=80Hz
+2. Add ReaEQ → HPF 80Hz, Bell -3dB @2.5kHz Q=1.0, Bell -2dB @4.5kHz Q=1.0
+3. Right-click FX chain → "Save chain as..." → `FXChains/ReaForge/vocal_slap.RfxChain`
+)MD";
+
+inline constexpr const char* kFxChainFormatRef = R"MD(# FX Chain Format (REAPER RfxChain)
+
+## 🛑 DO NOT CALL reaforge_save_fx_chain WITH GENERATED XML
+
+REAPER's `.RfxChain` format is a **proprietary text/binary format** that looks like:
 ```
+BYPASS 0 0
+<VST "VST: ReaEQ (Cockos)" reaeq.dll 0 "" 1919247729<...base64...> "" ...>
+FXID {GUID}
+WAK 0 0
+```
+
+**The XML format (`<FXCHAIN> <FX id="0" src="...">`) is NOT what REAPER reads.**
+If you call `reaforge_save_fx_chain(name, xml_content)`, the file will be unreadable
+by REAPER and produce "error al leer".
+
+**The ONLY correct way to create an `.RfxChain` is to let REAPER generate it**
+via the Lua chain builder template. See `fx_chain-primitives/chain-builder-template.md`.
+
+## Correct flow
+
+1. Call `reaforge_get_api_reference("fx_chain-primitives/chain-builder-template")` → get the Lua template
+2. Fill `{{FX_NAMES}}` and `{{FX_PARAMS}}` with the desired chain
+3. Call `reaforge_save_lua("build_<name>", script, register_action=true)` → saves the builder
+4. User runs the action from Actions → REAPER adds FX to the track and exports the chain
+5. The `.RfxChain` file appears in `FXChains/ReaForge/`
+
+**NEVER call `reaforge_save_fx_chain(name, content)` with hand-generated or LLM-generated XML.**
+That endpoint is for programmatic use only (e.g., the Lua builder template calling
+`GetTrackFXChain()` programmatically).
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsDynamicsLookaheadLimiterRef = R"MD(# Lookahead Limiter (Dynamics — Advanced)
+
+## Code
+```jsfx
+desc:Lookahead Limiter
+
+slider1:0<-24,0,0.1>Ceiling (dB)
+slider2:1<0.1,50,0.1>Release (ms)
+slider3:5<1,50,0.1>Lookahead (ms)
+slider4:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+look_samples = srate * slider3 / 1000;
+buf_len = look_samples * 2;
+buf_l = 0; buf_r = 0; memset(buf_l, 0, buf_len); memset(buf_r, 0, buf_len);
+wpos = 0;
+env = 0;
+release_coef = exp(-1 / (slider2 / 1000 * srate));
+
+@slider
+ceiling = 10^(slider1 / 20);
+look_samples = floor(srate * slider3 / 1000);
+release_coef = exp(-1 / (slider2 / 1000 * srate));
+out_gain = 10^(slider4 / 20);
+
 @sample
-(slider2 >= 1) ? (
-  // user wants 100% wet: replace with processed signal only
-  spl0 = processed_l;
-  spl1 = processed_r;
+// Write to circular buffer
+buf_l[wpos] = spl0;
+buf_r[wpos] = spl1;
+rpos = (wpos + 1) % look_samples;
+wpos = (wpos + 1) % look_samples;
+
+// Peak detection over lookahead window
+peak = max(abs(buf_l[rpos]), abs(buf_r[rpos]));
+
+// Gain computer: if peak exceeds ceiling, reduce gain
+target_gain = peak > ceiling ? ceiling / peak : 1;
+
+// Smooth release (attack is instant — it's a limiter)
+target_gain < env ? env = target_gain :  // instant attack
+  env = env * release_coef + target_gain * (1 - release_coef);  // smooth release
+
+// Apply gain to the delayed signal
+spl0 = buf_l[rpos] * env * out_gain;
+spl1 = buf_r[rpos] * env * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Ceiling | -24 to 0 dB | 0 | Maximum output level. Nothing exceeds this. |
+| Release | 0.1–50 ms | 1 | How fast the limiter recovers after a peak |
+| Lookahead | 1–50 ms | 5 | Buffer delay for predicting peaks. Higher = more transparent but more latency |
+| Output | -12 to +12 dB | 0 | Post-limiter gain |
+
+## Use Case
+Brickwall limiting for mastering: prevent clipping while maximizing loudness. The lookahead buffer lets the limiter "see" peaks before they happen, applying gain reduction smoothly instead of clipping. Essential for mix bus, mastering chain, and any situation where absolute peak control is needed.
+
+## Compatibility
+- **Before**: Compression, EQ, saturation (shape the sound before limiting)
+- **After**: Nothing — limiter should be LAST in the chain
+- **Requires**: Lookahead circular buffer, peak detection
+- **Conflicts**: Multiple limiters in series are redundant — use one
+
+## Source
+Standard lookahead limiter topology. Lookahead buffer + instant attack + smooth release.
+Referenced in FAUST `compressor.lib` (lookahead_limiter). License: public domain.
+
+<!-- test: Sine at 0 dB. Ceiling=-3 dB. Output should never exceed -3 dB. Release=1ms should show fast recovery. Lookahead=10ms should be more transparent than 1ms. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsDynamicsRmsCompressorRef = R"MD(# RMS Compressor (Dynamics)
+
+## Code
+```jsfx
+desc:RMS Compressor
+
+slider1:-12<-60,0,0.1>Threshold (dB)
+slider2:4<1,20,0.1>Ratio (:1)
+slider3:10<0.1,100,0.1>Attack (ms)
+slider4:50<10,500,1>Release (ms)
+slider5:0<-12,12,0.1>Makeup Gain (dB)
+slider6:0<0,1,1{Peak,RMS}>Detection
+
+@init
+denorm = 1e-25;
+// Envelope state
+env_l = env_r = 0;
+
+@slider
+threshold = 10^(slider1 / 20);
+ratio = slider2;
+// Attack/release coefficients
+attack_coef = exp(-1 / (slider3 / 1000 * srate));
+release_coef = exp(-1 / (slider4 / 1000 * srate));
+makeup = 10^(slider5 / 20);
+rms_mode = slider6;
+
+@sample
+// Detection: peak or RMS
+det_l = rms_mode ? sqrt(env_l) : abs(spl0);
+det_r = rms_mode ? sqrt(env_r) : abs(spl1);
+
+// Gain computer: if above threshold, reduce
+over_l = det_l > threshold ? det_l / threshold : 1;
+over_r = det_r > threshold ? det_r / threshold : 1;
+// Ratio: gain_reduction = 1 - (1 - 1/ratio) * (over - 1)
+gr_l = over_l > 1 ? 1 / (1 + (over_l - 1) / ratio) : 1;
+gr_r = over_r > 1 ? 1 / (1 + (over_r - 1) / ratio) : 1;
+
+// Smooth gain reduction
+coef_l = gr_l < env_l ? attack_coef : release_coef;
+coef_r = gr_r < env_r ? attack_coef : release_coef;
+env_l = env_l * coef_l + gr_l * (1 - coef_l);
+env_r = env_r * coef_r + gr_r * (1 - coef_r);
+
+spl0 *= env_l * makeup;
+spl1 *= env_r * makeup;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Threshold | -60 to 0 dB | -12 | Level above which compression starts |
+| Ratio | 1:1 to 20:1 | 4:1 | Compression ratio |
+| Attack | 1–100 ms | 10 | How fast compression engages |
+| Release | 10–500 ms | 50 | How fast compression releases |
+| Makeup Gain | -12 to +12 dB | 0 | Post-compression level |
+| Detection | Peak/RMS | RMS | RMS = smoother, Peak = faster |
+
+## Use Case
+Dynamic range control. Smooth out vocal levels, add punch to drums, glue a mix bus. Feed-forward topology — detection is on the input, gain reduction on the output.
+
+## Compatibility
+- **Before**: EQ (to shape what triggers compression), saturation
+- **After**: Makeup gain, limiting, EQ
+- **Requires**: Envelope state, attack/release smoothing
+- **Conflicts**: Cascading compressors with fast attack can pump — use serial compression intentionally
+
+## Source
+Feed-forward RMS compressor. Based on FAUST `compressor.lib` and standard dynamics processor topology. License: MIT-compatible (FAUST).
+
+<!-- test: Sine at -6 dB. Threshold=-12 dB, Ratio=4:1. Output should show ~1.5 dB gain reduction. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsFiltersMoogLadderRef = R"MD(# Moog Ladder Filter (Filters — Advanced)
+
+## Code
+```jsfx
+desc:Moog Ladder Filter
+
+slider1:1000<20,20000,1>:log>Cutoff (Hz)
+slider2:0.5<0,1,0.01>Resonance
+slider3:0<0,12,0.1>Drive (dB)
+slider4:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+// 4 stage state
+s1_l = s2_l = s3_l = s4_l = 0;
+s1_r = s2_r = s3_r = s4_r = 0;
+
+@slider
+fc = 2 * $pi * slider1 / srate;
+// Thermal voltage ~1.0, tanh saturation in feedback
+t = tan(fc * 0.5);
+// Coefficient for one-pole stages (Stilson/Smith formulation)
+g = t / (1 + t);
+// Resonance compensation
+res = slider2 * 4;  // 0 to 4
+drive_lin = 10^(slider3 / 20);
+out_gain = 10^(slider4 / 20);
+// Feedback gain (compensated for 4-pole loss)
+k = res * (1 - g) * (1 - g) * (1 - g) * (1 - g);
+
+@sample
+// --- Left channel ---
+in_l = spl0 * drive_lin;
+// Feedback from stage 4 (with tanh nonlinearity for analog character)
+fb_l = tanh(s4_l * k);
+// Stage 1
+v1_l = g * (in_l - fb_l) + (1 - g) * s1_l;
+s1_l = v1_l;
+// Stage 2
+v2_l = g * v1_l + (1 - g) * s2_l;
+s2_l = v2_l;
+// Stage 3
+v3_l = g * v2_l + (1 - g) * s3_l;
+s3_l = v3_l;
+// Stage 4
+v4_l = g * v3_l + (1 - g) * s4_l;
+s4_l = v4_l;
+spl0 = v4_l * out_gain;
+
+// --- Right channel ---
+in_r = spl1 * drive_lin;
+fb_r = tanh(s4_r * k);
+v1_r = g * (in_r - fb_r) + (1 - g) * s1_r;
+s1_r = v1_r;
+v2_r = g * v1_r + (1 - g) * s2_r;
+s2_r = v2_r;
+v3_r = g * v2_r + (1 - g) * s3_r;
+s3_r = v3_r;
+v4_r = g * v3_r + (1 - g) * s4_r;
+s4_r = v4_r;
+spl1 = v4_r * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Cutoff | 20–20000 Hz (log) | 1000 | Filter cutoff frequency |
+| Resonance | 0–1 | 0.5 | Self-oscillation amount. 0 = no resonance, 1 = near self-oscillation |
+| Drive | 0–12 dB | 0 | Input drive into the filter. Adds harmonics via tanh nonlinearity |
+| Output | -12 to +12 dB | 0 | Post-filter gain |
+
+## Use Case
+The classic Moog transistor ladder filter sound. 24 dB/octave lowpass with musical resonance that self-oscillates at high Q. The tanh nonlinearity in the feedback path gives the "warm" analog character that digital biquads lack. Essential for synth bass, leads, and any sound that needs "that Moog sound."
+
+## Compatibility
+- **Before**: Saturation (drive into the filter), EQ
+- **After**: Delay, reverb, chorus
+- **Requires**: 4 state variables per channel, tanh nonlinearity
+- **Conflicts**: Cascading multiple Moog filters creates very steep rolloff (48 dB/oct) — usually one is enough
+
+## Source
+Stilson & Smith "Alias-Free Digital Synthesis of Classic Analog Waveforms" (1996).
+Tanh nonlinearity from Huovilainen's analog modeling approach.
+Referenced in FAUST `moog.lib` and Will Pirkle's synthesizer design textbook.
+License: public domain (algorithm), MIT-compatible (implementation).
+
+<!-- test: Saw wave input. Sweep cutoff 20000→100 Hz. Resonance=0.8 should show pronounced peak at cutoff, self-oscillation near 1.0. Drive=6dB adds visible waveform distortion. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsFiltersSvfChamberlinRef = R"MD(# State Variable Filter (SVF) — Chamberlin (Filters — Advanced)
+
+## Code
+```jsfx
+desc:State Variable Filter (SVF)
+
+slider1:1000<20,20000,1>:log>Cutoff (Hz)
+slider2:1<0.1,10,0.01>Resonance (Q)
+slider3:0<0,3,1{Lowpass,Bandpass,Highpass,Notch}>Output Mode
+
+@init
+denorm = 1e-25;
+lp_l = bp_l = hp_l = 0;
+lp_r = bp_r = hp_r = 0;
+
+@slider
+f = 2 * sin($pi * slider1 / srate);  // Chamberlin frequency coefficient
+// Clamp to stability range (< 2 * sin(pi * nyquist / srate))
+f = min(f, 0.99);
+q = 1 / slider2;  // Damping from Q
+
+@sample
+// --- Left channel ---
+hp_l = spl0 - lp_l - q * bp_l;
+bp_l = bp_l + f * hp_l;
+lp_l = lp_l + f * bp_l;
+
+// Select output
+slider3 == 0 ? spl0 = lp_l :    // Lowpass
+slider3 == 1 ? spl0 = bp_l :    // Bandpass
+slider3 == 2 ? spl0 = hp_l :    // Highpass
+spl0 = lp_l + hp_l;              // Notch (4th mode)
+
+// --- Right channel ---
+hp_r = spl1 - lp_r - q * bp_r;
+bp_r = bp_r + f * hp_r;
+lp_r = lp_r + f * bp_r;
+
+slider3 == 0 ? spl1 = lp_r :
+slider3 == 1 ? spl1 = bp_r :
+slider3 == 2 ? spl1 = hp_r :
+spl1 = lp_r + hp_r;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Cutoff | 20–20000 Hz (log) | 1000 | Filter center frequency |
+| Resonance | 0.1–10 | 1 | Q factor. 0.707 = Butterworth. High Q = resonant peak |
+| Output Mode | 0-3 | 0 (LP) | Lowpass, Bandpass, Highpass, Notch — all from one filter |
+
+## Use Case
+The most versatile filter in DSP. One instance gives you LP, BP, HP, and Notch simultaneously — just select the output mode. The SVF is numerically stable (unlike biquad at low frequencies) and efficient (2 multiplies per sample). Use for synths, EQ, and any application where you need multiple filter modes from one cutoff.
+
+## Compatibility
+- **Before**: Saturation, DC blocking
+- **After**: Delay, reverb, modulation
+- **Requires**: 2 state variables per channel (bp + lp)
+- **Conflicts**: Chamberlin SVF is unstable above ~6 kHz at 44.1 kHz sample rate. For high frequencies, use RBJ biquad instead
+
+## Source
+Chamberlin "Musical Applications of Microprocessors" (1985).
+Standard 2nd-order SVF topology. Referenced in FAUST `svfilter.lib` and
+Csound `svfilter` opcode. License: public domain.
+
+<!-- test: White noise. Mode=LP, sweep 20000→100 Hz. Should show smooth lowpass. Mode=BP should show peaked bandpass at cutoff. Q=5 should ring visibly. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsModulationBitcrusherRef = R"MD(# Bitcrusher (Lo-fi / Degradation)
+
+## Code
+```jsfx
+desc:Bitcrusher
+
+slider1:8<1,16,1>Bit Depth
+slider2:44100<1000,96000,100>Sample Rate (Hz)
+slider3:0<-20,20,0.1>Output Gain (dB)
+slider4:100<0,100,1>Mix (%)
+
+@init
+denorm = 1e-25;
+hold_l = hold_r = 0;
+sample_counter = 0;
+
+@slider
+bits = slider1;
+levels = 2^bits;
+sample_rate_div = srate / slider2;  // how many input samples per output sample
+out_gain = 10^(slider3 / 20);
+mix = slider4 / 100;
+
+@sample
+// --- Sample rate reduction (hold-and-sample) ---
+sample_counter += 1;
+sample_counter >= sample_rate_div ? (
+  sample_counter = 0;
+  hold_l = spl0;
+  hold_r = spl1;
+);
+
+// --- Bit depth reduction (quantization) ---
+// Quantize to 'levels' steps, centered at zero
+quant_l = floor(hold_l * levels / 2 + 0.5) / (levels / 2);
+quant_r = floor(hold_r * levels / 2 + 0.5) / (levels / 2);
+
+// Clamp to [-1, 1]
+quant_l = max(-1, min(1, quant_l));
+quant_r = max(-1, min(1, quant_r));
+
+// Mix dry and wet
+spl0 = spl0 * (1 - mix) + quant_l * out_gain * mix;
+spl1 = spl1 * (1 - mix) + quant_r * out_gain * mix;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Bit Depth | 1–16 | 8 | Number of bits. Lower = more quantization noise. 16 = no degradation |
+| Sample Rate | 1000–96000 Hz | 44100 | Virtual sample rate. Lower = more aliasing/hold noise |
+| Output Gain | -20 to +20 dB | 0 | Post-crush level |
+| Mix | 0–100% | 100% | Dry/wet blend |
+
+## Use Case
+Lo-fi degradation: retro game sounds, chip-tune aesthetics, industrial distortion, vocal电话 effect. Bit depth controls quantization noise (8-bit = NES, 4-bit = Atari). Sample rate reduction adds aliasing and "stepped" artifacts. Combine with saturation for tape-degradation effects.
+
+## Compatibility
+- **Before**: Saturation, EQ
+- **After**: Reverb, delay (to add space to the degraded sound)
+- **Requires**: Hold buffer for sample rate reduction
+- **Conflicts**: Multiple bitcrushers in series compound the degradation — usually one is enough
+
+## Source
+Standard quantization and decimation. Bit depth reduction via `floor(x * levels) / levels`.
+Sample rate reduction via hold-and-sample. License: public domain.
+
+<!-- test: Sine at 1 kHz. Bit Depth=4 should show visible staircasing. Sample Rate=2000 should show aliasing artifacts. Mix=50% blends clean and crushed. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsModulationChorusFlangerRef = R"MD(# Chorus / Flanger (Modulation)
+
+## Code
+```jsfx
+desc:Chorus / Flanger
+
+slider1:10<2,30,0.1>Time (ms)
+slider2:5<1,15,0.1>Depth (ms)
+slider3:0.5<0.05,5,0.01>Rate (Hz)
+slider4:2<1,4,1>Voices
+slider5:0<-20,20,0.1>Wet Gain (dB)
+
+@init
+denorm = 1e-25;
+max_voices = 4;
+buf_len = srate * 0.05; // 50ms per voice
+bufs = 0; memset(bufs, 0, buf_len * max_voices);
+wpos = 0; memset(wpos, 0, max_voices);
+phase = 0; memset(phase, 0, max_voices);
+
+@slider
+center_time = slider1 / 1000 * srate;
+depth_time = slider2 / 1000 * srate;
+rate = slider3;
+voices = min(slider4, max_voices);
+wet_g = 10^(slider5 / 20);
+
+@sample
+out_l = out_r = 0;
+v = 0;
+loop(voices,
+    // Each voice has its own LFO phase offset
+    phase[v] += rate / srate;
+    phase[v] >= 1 ? phase[v] -= 1;
+    mod = sin((phase[v] + v * 0.25) * 2 * $pi) * depth_time;
+    total_time = center_time + mod;
+    
+    // Read from buffer
+    rpos = wpos[v] - total_time;
+    rpos < 0 ? rpos += buf_len;
+    frac = rpos - floor(rpos); rpos_i = floor(rpos);
+    rpos_next = (rpos_i + 1) % buf_len;
+    del_l = bufs[rpos_i] * (1 - frac) + bufs[rpos_next] * frac;
+    
+    out_l += del_l;
+    
+    // Write to buffer
+    bufs[wpos[v]] = (spl0 + spl1) * 0.5;
+    wpos[v] = (wpos[v] + 1) % buf_len;
+    v += 1;
+);
+
+spl0 = spl0 + out_l * wet_g / voices;
+spl1 = spl1 + out_l * wet_g / voices;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Time | 2–30 ms | 10 | Center delay. <5ms = flanger, >10ms = chorus. |
+| Depth | 1–15 ms | 5 | LFO modulation depth. |
+| Rate | 0.05–5 Hz | 0.5 | LFO speed. |
+| Voices | 1–4 | 2 | Number of modulated voices. More = thicker. |
+| Wet Gain | -20 to +20 dB | 0 | Wet level (blended with dry). |
+
+## Use Case
+Chorus: thicken guitars, pads, vocals. Flanger: jet-plane swoosh, psychedelic textures. Multiple voices with phase-offset LFOs create a rich ensemble effect. Low CPU — just delays + LFOs.
+
+## Compatibility
+- **Before**: Saturation (to add harmonics before modulation), compression
+- **After**: Reverb (to spatialize), EQ
+- **Requires**: Per-voice buffer, per-voice LFO phase
+- **Conflicts**: Multiple chorus instances at similar rates can create beat frequencies — use different rates intentionally
+
+## Source
+Multi-voice modulated delay chorus. Standard effect topology. Based on musicdsp.org chorus article and FAUST `phaflanger.lib`. License: public domain.
+
+<!-- test: Sine at 1 kHz. Rate=0.5Hz, Depth=5ms, Voices=2. Output should show periodic pitch modulation with stereo width from voice panning. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsModulationRingModulatorRef = R"MD(# Ring Modulator (Modulation)
+
+## Code
+```jsfx
+desc:Ring Modulator
+
+slider1:100<1,5000,1>Carrier Frequency (Hz)
+slider2:0<-20,20,0.1>Output Gain (dB)
+slider3:100<0,100,1>Dry/Wet Mix (%)
+
+@init
+denorm = 1e-25;
+phase = 0;
+
+@slider
+carrier_freq = slider1;
+out_gain = 10^(slider2 / 20);
+mix = slider3 / 100;
+
+@sample
+// Advance carrier oscillator phase
+phase += carrier_freq / srate;
+phase >= 1 ? phase -= 1;
+
+// Ring modulation: multiply input by carrier
+// Carrier is a sine wave at carrier_freq
+carrier = sin(phase * 2 * $pi);
+
+// Wet signal = input * carrier (classic ring mod)
+wet_l = spl0 * carrier;
+wet_r = spl1 * carrier;
+
+// Mix dry and wet
+spl0 = spl0 * (1 - mix) + wet_l * out_gain * mix;
+spl1 = spl1 * (1 - mix) + wet_r * out_gain * mix;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Carrier Frequency | 1–5000 Hz | 100 | Frequency of the modulation carrier. Lower = subtle, higher = metallic |
+| Output Gain | -20 to +20 dB | 0 | Wet signal level |
+| Dry/Wet Mix | 0–100% | 100% | 0% = dry, 100% = full ring mod |
+
+## Use Case
+Classic ring modulator effect: creates metallic, bell-like, and alien sounds by multiplying the input with a carrier oscillator. Used for vocal effects (Dalek voice), synthesizer sounds, and experimental sound design. At low carrier frequencies, creates tremolo. At high frequencies, creates inharmonic sidebands.
+
+## Compatibility
+- **Before**: Saturation (to shape the input before modulation)
+- **After**: Reverb (to add space to the metallic sound), delay
+- **Requires**: Phase accumulator for carrier oscillator
+- **Conflicts**: None — composable with everything
+
+## Source
+Classic amplitude modulation. Ring mod = multiplication of two signals.
+Standard DSP technique. License: public domain.
+
+<!-- test: Sine at 440 Hz. Carrier=100 Hz. Output should contain 340 Hz and 540 Hz sidebands (440±100). Carrier=2000 Hz should sound metallic/bell-like. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsPitchPsolaPitchShiftRef = R"MD(# PSOLA Pitch Shift (Pitch)
+
+## Code
+```jsfx
+desc:PSOLA Pitch Shift
+
+slider1:0<-12,12,1>Shift (semitones)
+slider2:256<64,1024,64>Window Size
+slider3:4<2,8,1>Overlap Factor
+slider4:0<-20,20,0.1>Wet Gain (dB)
+
+@init
+denorm = 1e-25;
+// Buffer for overlap-add
+buf_max = srate * 0.5; // 500ms
+buf = 0; memset(buf, 0, buf_max * 2); // stereo
+wpos = 0; read_pos = 0;
+// Hann window
+function hann(pos, len) (0.5 - 0.5 * cos(2 * $pi * pos / (len - 1)));
+
+@slider
+ratio = 2^(slider1 / 12); // semitones to ratio
+// ratio > 1 = pitch up (read faster)
+// ratio < 1 = pitch down (read slower)
+win_size = slider2;
+hop = win_size / slider3;
+wet_g = 10^(slider4 / 20);
+
+@sample
+// Write input to buffer
+buf[wpos * 2] = spl0;
+buf[wpos * 2 + 1] = spl1;
+wpos = (wpos + 1) % buf_max;
+
+// Compute delayed read position for pitch shift
+read_target = wpos - win_size;
+read_target < 0 ? read_target += buf_max;
+// Advance read position by ratio (fractional)
+read_pos += ratio;
+read_pos >= wpos ? read_pos -= buf_max;
+
+// Overlap-add: mix multiple windows
+out_l = out_r = 0;
+i = 0; pos = read_pos;
+loop(floor(win_size / hop) + 1,
+    pos_int = floor(pos) % buf_max;
+    frac = pos - floor(pos);
+    pos_next = (pos_int + 1) % buf_max;
+    win_val = hann(i * hop, win_size);
+    out_l += (buf[pos_int * 2] * (1 - frac) + buf[pos_next * 2] * frac) * win_val;
+    out_r += (buf[pos_int * 2 + 1] * (1 - frac) + buf[pos_next * 2 + 1] * frac) * win_val;
+    pos += hop;
+    i += 1;
+);
+
+spl0 = spl0 + out_l * wet_g;
+spl1 = spl1 + out_r * wet_g;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Shift | -12 to +12 semitones | 0 | Pitch shift amount. 0 = unchanged. |
+| Window Size | 64–1024 | 256 | Analysis window. Smaller = less latency, more artifacts. |
+| Overlap Factor | 2–8 | 4 | Number of overlapping windows. Higher = smoother but more CPU. |
+| Wet Gain | -20 to +20 dB | 0 | Wet signal level (blended with dry). |
+
+## Use Case
+Pitch-shift vocals for harmonies, downtune guitars, create bass from guitar. PSOLA (Pitch-Synchronous Overlap-Add) is the standard time-domain pitch shifter — better quality than simple resampling, less CPU than phase vocoder.
+
+## Compatibility
+- **Before**: Compression (to smooth dynamics before pitch shift)
+- **After**: EQ (to shape the shifted tone), reverb
+- **Requires**: Large buffer (srate * 0.5), Hann window function
+- **Conflicts**: Cascading PSOLA shifts progressively degrade quality — use a single instance per target shift
+
+## Source
+PSOLA algorithm. Based on STK `PitchShifter` and standard overlap-add time-stretching literature. Hann window from Harris' classic paper. License: MIT-compatible (STK).
+
+<!-- test: 1 kHz sine. Shift=+12 (octave up). Output should be 2 kHz sine with Hann-windowed overlap. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsReverbConvolutionReverbRef = R"MD(# Convolution Reverb (Reverb — Advanced)
+
+## Code
+```jsfx
+desc:Convolution Reverb (FFT-based)
+
+slider1:0.5<0,1,0.01>Mix
+slider2:2<0.5,10,0.1>Decay (s)
+slider3:0.7<0.1,1,0.01>Damping
+slider4:4096<256,16384,256>FFT Size
+
+@init
+denorm = 1e-25;
+fft_sz = 4096;
+hop = fft_sz / 4;  // 75% overlap
+buf_l = 0; buf_r = 0;
+ir_l = 0; ir_r = 0;
+out_l = 0; out_r = 0;
+fft_l = 0; fft_r = 0;
+fft_ir_l = 0; fft_ir_r = 0;
+wpos = 0;
+samples_since_fft = 0;
+
+// Generate a synthetic impulse response (decaying noise)
+function generate_ir(buf, decay_s, damp) (
+  i = 0;
+  len = srate * decay_s;
+  len > fft_sz ? len = fft_sz;
+  while (i < len) (
+    // Exponential decay envelope
+    env = exp(-3 * i / (decay_s * srate));
+    // Damped noise
+    noise = rand(2) - 1;
+    buf[i] = noise * env * damp;
+    i += 1;
+  );
+);
+
+generate_ir(ir_l, slider2, slider3);
+generate_ir(ir_r, slider2, slider3);
+
+// Pre-FFT the impulse response
+fft_real(ir_l, fft_sz); fft_permute(ir_l, fft_sz / 2);
+fft_real(ir_r, fft_sz); fft_permute(ir_r, fft_sz / 2);
+
+@slider
+fft_sz = slider4;
+hop = fft_sz / 4;
+mix = slider1;
+// Regenerate IR on parameter change
+memset(ir_l, 0, fft_sz); memset(ir_r, 0, fft_sz);
+generate_ir(ir_l, slider2, slider3);
+generate_ir(ir_r, slider2, slider3);
+fft_real(ir_l, fft_sz); fft_permute(ir_l, fft_sz / 2);
+fft_real(ir_r, fft_sz); fft_permute(ir_r, fft_sz / 2);
+
+@sample
+// Accumulate input into buffer
+buf_l[wpos] = spl0;
+buf_r[wpos] = spl1;
+wpos = (wpos + 1) % fft_sz;
+samples_since_fft += 1;
+
+// Process when we have enough samples
+samples_since_fft >= hop ? (
+  samples_since_fft = 0;
+
+  // Copy buffer to FFT workspace (Hann window)
+  i = 0;
+  while (i < fft_sz) (
+    win = 0.5 - 0.5 * cos(2 * $pi * i / (fft_sz - 1));
+    fft_l[i] = buf_l[(wpos + i) % fft_sz] * win;
+    fft_r[i] = buf_r[(wpos + i) % fft_sz] * win;
+    i += 1;
+  );
+
+  // Forward FFT
+  fft_real(fft_l, fft_sz); fft_permute(fft_l, fft_sz / 2);
+  fft_real(fft_r, fft_sz); fft_permute(fft_r, fft_sz / 2);
+
+  // Multiply with IR in frequency domain (convolution = multiplication in freq)
+  convolve_c(fft_l, ir_l, fft_sz / 2);
+  convolve_c(fft_r, ir_r, fft_sz / 2);
+
+  // Inverse FFT
+  fft_ipermute(fft_l, fft_sz / 2); ifft_real(fft_l, fft_sz);
+  fft_ipermute(fft_r, fft_sz / 2); ifft_real(fft_r, fft_sz);
+
+  // Scale and overlap-add to output
+  i = 0;
+  while (i < fft_sz) (
+    out_l[i] += fft_l[i] / fft_sz;
+    out_r[i] += fft_r[i] / fft_sz;
+    i += 1;
+  );
+);
+
+// Read from output buffer
+wet_l = out_l[wpos];
+wet_r = out_r[wpos];
+out_l[wpos] = 0; out_r[wpos] = 0;  // clear for next overlap-add
+
+spl0 = spl0 * (1 - mix) + wet_l * mix;
+spl1 = spl1 * (1 - mix) + wet_r * mix;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Mix | 0–1 | 0.5 | Wet/dry blend |
+| Decay | 0.5–10 s | 2 | Impulse response length (RT60) |
+| Damping | 0.1–1 | 0.7 | High-frequency absorption (0=bright, 1=dark) |
+| FFT Size | 256–16384 | 4096 | Processing block. Larger = better quality, more latency |
+
+## Use Case
+FFT-based convolution reverb with synthetic impulse response. Generates a decaying noise IR with adjustable decay and damping. More realistic than FDN for room emulation. Higher CPU but higher quality. Use when you need natural room sound, hall acoustics, or realistic space.
+
+## Compatibility
+- **Before**: EQ, compression, saturation
+- **After**: Nothing — reverb is typically last
+- **Requires**: FFT buffers (4 × fft_sz), Hann window, overlap-add
+- **Conflicts**: High CPU at fft_sz=16384. Use 4096 for real-time, 16384 for offline rendering
+
+## Source
+FFT convolution using overlap-add method. JSFX `fft_real()`, `fft_permute()`,
+`convolve_c()`, `ifft_real()` functions. Hann window from Harris (1978).
+Synthetic IR: decaying filtered noise. License: public domain.
+
+<!-- test: Impulse. Decay=2s, Damping=0.7, Mix=1.0. Should hear dense reverb tail decaying over ~2 seconds. Damping=0.3 should sound brighter. FFT=8192 should be higher quality than 4096. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsReverbFdnReverbRef = R"MD(# FDN Reverb (Reverb)
+
+## Code
+```jsfx
+desc:FDN Reverb
+
+slider1:1<0.1,10,0.1>Decay (s)
+slider2:0.5<0,1,0.01>Mix
+slider3:0.7<0.1,1,0.01>Damping
+
+@init
+denorm = 1e-25;
+// 4 delay lines with prime-number lengths for decorrelation
+n_delays = 4;
+del_len = srate * 0.1; // 100ms base, primes scale it
+del_lens[0] = floor(del_len * 0.017);  // ~29ms
+del_lens[1] = floor(del_len * 0.023);  // ~40ms
+del_lens[2] = floor(del_len * 0.031);  // ~54ms
+del_lens[3] = floor(del_len * 0.043);  // ~75ms
+// Buffer allocation
+buf_len = del_len;
+bufs = 0; memset(bufs, 0, buf_len * n_delays);
+wpos = 0; memset(wpos, 0, n_delays);
+
+// Hadamard feedback matrix (4x4, scaled by 0.5)
+h00 = 0.5; h01 = 0.5; h02 = 0.5; h03 = 0.5;
+h10 = 0.5; h11 = -0.5; h12 = 0.5; h13 = -0.5;
+h20 = 0.5; h21 = 0.5; h22 = -0.5; h23 = -0.5;
+h30 = 0.5; h31 = -0.5; h32 = -0.5; h33 = 0.5;
+
+@slider
+decay_gain = exp(-3 * 0.1 / slider1); // -60dB in decay seconds
+mix = slider2;
+damping = slider3;
+
+@sample
+mono = (spl0 + spl1) * 0.5;
+// Read from each delay line
+del[0] = bufs[wpos[0]];
+del[1] = bufs[buf_len + wpos[1]];
+del[2] = bufs[buf_len*2 + wpos[2]];
+del[3] = bufs[buf_len*3 + wpos[3]];
+
+// Hadamard mix + input injection
+f[0] = mono + (h00*del[0] + h01*del[1] + h02*del[2] + h03*del[3]) * decay_gain;
+f[1] = mono + (h10*del[0] + h11*del[1] + h12*del[2] + h13*del[3]) * decay_gain;
+f[2] = mono + (h20*del[0] + h21*del[1] + h22*del[2] + h23*del[3]) * decay_gain;
+f[3] = mono + (h30*del[0] + h31*del[1] + h32*del[2] + h33*del[3]) * decay_gain;
+
+// Damping (one-pole lowpass in feedback)
+d[0] = d[0] * damping + f[0] * (1 - damping);
+d[1] = d[1] * damping + f[1] * (1 - damping);
+d[2] = d[2] * damping + f[2] * (1 - damping);
+d[3] = d[3] * damping + f[3] * (1 - damping);
+
+// Write back
+bufs[wpos[0]] = d[0]; wpos[0] = (wpos[0] + 1) % del_lens[0];
+bufs[buf_len + wpos[1]] = d[1]; wpos[1] = (wpos[1] + 1) % del_lens[1];
+bufs[buf_len*2 + wpos[2]] = d[2]; wpos[2] = (wpos[2] + 1) % del_lens[2];
+bufs[buf_len*3 + wpos[3]] = d[3]; wpos[3] = (wpos[3] + 1) % del_lens[3];
+
+// Output: sum all delay lines for stereo
+wet = (del[0] + del[1] + del[2] + del[3]) * 0.25;
+spl0 = spl0 * (1 - mix) + wet * mix;
+spl1 = spl1 * (1 - mix) + wet * mix;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Decay | 0.1–10 s | 1 | RT60 decay time |
+| Mix | 0–1 | 0.5 | Wet/dry mix |
+| Damping | 0.1–1 | 0.7 | High-frequency absorption in feedback |
+
+## Use Case
+Natural-sounding room/hall reverb. More computationally efficient than convolution. The Hadamard matrix ensures decorrelated output from each delay line. Good for vocals, drums, ambient textures.
+
+## Compatibility
+- **Before**: EQ, compression, delay
+- **After**: EQ (to shape the reverb tone)
+- **Requires**: 4 delay line buffers, Hadamard matrix coefficients
+- **Conflicts**: Multiple FDNs in series create dense reverb — usually one is enough
+
+## Source
+Feedback Delay Network (FDN) reverb. Based on FAUST `reverb.lib` and J. O. Smith's FDN formulation. Hadamard matrix for lossless feedback mixing. License: MIT-compatible (FAUST).
+
+<!-- test: Impulse. Decay=1s, Mix=1.0. Output should show dense reverb tail decaying over ~1 second. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsSynthesisFmSynthesisRef = R"MD(# FM Synthesis (Synthesis)
+
+## Code
+```jsfx
+desc:FM Synthesizer
+
+slider1:0<-24,24,1>Carrier Freq (semitones from A4)
+slider2:1<0.1,10,0.1>Modulator Ratio
+slider3:0<0,10,0.1>Modulation Depth
+slider4:0<0,1,1{Sine,Square,Saw}>Carrier Wave
+slider5:0<0,1,1{Sine,Square,Saw}>Modulator Wave
+slider6:0<0,1,0.001>Attack
+slider7:0.3<0,1,0.001>Decay
+slider8:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+carrier_phase = 0;
+mod_phase = 0;
+env = 0;
+note_freq = 440;
+
+@slider
+carrier_freq = 440 * 2^(slider1 / 12);
+mod_ratio = slider2;
+mod_depth = slider3 * carrier_freq;  // depth in Hz
+out_gain = 10^(slider6 / 20);
+
+@block
+// MIDI input
+midirecv(offset, msg1, msg2, msg3) ? (
+  (msg1 & 0xF0) == 0x90 && msg3 > 0 ? (
+    note_freq = 440 * 2^((msg2 - 69) / 12);
+    env_state = 1;  // attack
+    env = 0;
+  ) : (msg1 & 0xF0) == 0x80 ? (
+    env_state = 2;  // release
+  );
+);
+
+@sample
+// Advance phases
+carrier_phase += note_freq / srate;
+mod_phase += (note_freq * mod_ratio) / srate;
+carrier_phase >= 1 ? carrier_phase -= 1;
+mod_phase >= 1 ? mod_phase -= 1;
+
+// Modulator waveform
+mod_wave = slider5 == 0 ? sin(mod_phase * 2 * $pi) :
+           slider5 == 1 ? (mod_phase > 0.5 ? 1 : -1) :
+           (2 * mod_phase - 1);
+
+// Carrier with FM
+freq_mod = carrier_phase + (mod_wave * mod_depth) / srate;
+carrier_wave = slider4 == 0 ? sin(freq_mod * 2 * $pi) :
+               slider4 == 1 ? (freq_mod > 0.5 ? 1 : -1) :
+               (2 * freq_mod - 1);
+
+// Envelope (ADSR simplified to AR)
+env_state == 1 ? (
+  env += (1 - env) * slider6;
+  env >= 0.999 ? env_state = 0;  // sustain
+) : env_state == 2 ? (
+  env *= 0.999;
+  env < 0.001 ? env = 0;
+);
+
+spl0 = carrier_wave * env * out_gain;
+spl1 = carrier_wave * env * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Carrier Freq | -24 to +24 semitones | 0 (A4=440Hz) | Base pitch (also responds to MIDI) |
+| Modulator Ratio | 0.1–10 | 1 | Ratio of modulator to carrier. Integer ratios = harmonic, non-integer = inharmonic |
+| Modulation Depth | 0–10 | 0 | FM intensity. 0 = pure sine, higher = more complex harmonics |
+| Carrier Wave | Sine/Square/Saw | Sine | Carrier oscillator waveform |
+| Modulator Wave | Sine/Square/Saw | Sine | Modulator oscillator waveform |
+| Attack | 0–1 | 0 | Envelope attack speed |
+| Decay | 0–1 | 0.3 | Envelope decay speed |
+| Output | -12 to +12 dB | 0 | Output level |
+
+## Use Case
+Classic FM synthesis (Yamaha DX7 style). Creates bell, electric piano, brass, and metallic sounds. Modulator ratio controls the harmonic structure: 1:1 = warm, 2:1 = bright, 3:1 = bell-like, non-integer = inharmonic/metallic. MIDI-triggered for melodic use.
+
+## Compatibility
+- **Before**: Not applicable (generator)
+- **After**: Reverb, chorus, delay, saturation
+- **Requires**: Two oscillators with independent phase, envelope state
+- **Conflicts**: Monophonic. For polyphony, instantiate multiple times
+
+## Source
+Chowning FM synthesis (1973). Standard FM: carrier + modulator * depth.
+Referenced in FAUST `oscillator.lib` and Joep Van Lier's Yutani synth.
+License: public domain (algorithm).
+
+<!-- test: MIDI note A4 (69). ModRatio=2, Depth=5 should sound like a bell. ModRatio=1, Depth=1 should sound like a warm synth. ModRatio=3.5 should sound metallic/inharmonic. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsSynthesisKarplusStrongRef = R"MD(# Karplus-Strong String Synthesis (Synthesis)
+
+## Code
+```jsfx
+desc:Karplus-Strong Plucked String
+
+slider1:60<20,200,1>MIDI Note
+slider2:0.95<0.5,0.999,0.001>Decay
+slider3:0.5<0,1,0.01>Pick Position
+slider4:0<0,1,1{White Noise,Sawtooth}>Excitation
+slider5:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+buf_len = srate;  // 1 second max
+buf = 0; memset(buf, 0, buf_len);
+wpos = 0;
+delay_len = 0;
+note_on = 0;
+out_gain = 10^(slider5 / 20);
+
+@slider
+// Calculate delay length from MIDI note
+freq = 440 * 2^((slider1 - 69) / 12);
+delay_len = floor(srate / freq);
+decay = slider2;
+pick = slider3;
+excite_mode = slider4;
+out_gain = 10^(slider5 / 20);
+
+@block
+// Trigger: check for MIDI note on
+midirecv(offset, msg1, msg2, msg3) ? (
+  (msg1 & 0xF0) == 0x90 && msg3 > 0 ? (
+    // Note on: fill buffer with excitation
+    delay_len = floor(srate / (440 * 2^((msg2 - 69) / 12)));
+    i = 0;
+    while (i < delay_len) (
+      excite_mode == 0 ? (
+        // White noise excitation with pick position
+        pick_pos = i / delay_len;
+        buf[i] = (pick_pos < pick) ? rand(2) - 1 : 0;
+      ) : (
+        // Sawtooth excitation
+        buf[i] = (2 * (i / delay_len) - 1) * (i / delay_len < pick ? 1 : 0);
+      );
+      i += 1;
+    );
+    wpos = 0;
+    note_on = 1;
+  );
+);
+
+@sample
+// Read from buffer
+current = buf[wpos];
+// Write back: average of current and next sample (lowpass filter in feedback)
+// This is the key to Karplus-Strong: the delay line + averaging = decaying harmonics
+next = buf[(wpos + 1) % delay_len];
+buf[wpos] = (current + next) * 0.5 * decay;
+wpos = (wpos + 1) % delay_len;
+
+spl0 = current * out_gain;
+spl1 = current * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| MIDI Note | 20–200 | 60 (C3) | Pitch of the string (also responds to MIDI input) |
+| Decay | 0.5–0.999 | 0.95 | String decay rate. Higher = longer sustain |
+| Pick Position | 0–1 | 0.5 | Where on the string the pick strikes. 0=bridge, 0.5=middle, 1=nut |
+| Excitation | 0-1 | 0 (Noise) | White noise = plucked string, Sawtooth = bowed string |
+| Output | -12 to +12 dB | 0 | Output level |
+
+## Use Case
+Physical modeling synthesis of plucked strings (guitar, harp, koto). Send MIDI notes to trigger. The delay line length determines pitch, the averaging filter in the feedback creates the natural harmonic decay. Pick position controls timbre — picking near the bridge = brighter, near the middle = warmer.
+
+## Compatibility
+- **Before**: Not applicable (this is a generator, not a processor)
+- **After**: Reverb (to add room acoustics), chorus (to thicken), saturation
+- **Requires**: MIDI input for triggering, 1-second buffer
+- **Conflicts**: Monophonic — one note at a time. For polyphony, instantiate multiple times
+
+## Source
+Karplus & Strong "Digital Synthesis of Plucked-String and Drum Timbres"
+(Computer Music Journal, 1983). License: public domain (algorithm).
+
+<!-- test: Send MIDI note C3 (60). Should hear a plucked string sound that decays over ~2 seconds. Pick=0.1 should sound brighter (bridge picking). Pick=0.5 should sound warmer. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsSynthesisWavetableOscillatorRef = R"MD(# Wavetable Oscillator (Synthesis)
+
+## Code
+```jsfx
+desc:Wavetable Oscillator
+
+slider1:0<-24,24,1>Pitch (semitones from A4)
+slider2:0<0,7,0.001>Wave Position
+slider3:0<0,1,1{Saw,Square,Sine,Pulse,Noise,Triangle,Double Saw,FM}>Wave Table
+slider4:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+phase = 0;
+wt_size = 2048;
+note_freq = 440;
+out_gain = 10^(slider4 / 20);
+
+// Build wavetables in memory
+function build_wt(base, type) (
+  i = 0;
+  while (i < wt_size) (
+    pos = i / wt_size;
+    type == 0 ? base[i] = 2 * pos - 1 :           // Saw
+    type == 1 ? base[i] = pos < 0.5 ? 1 : -1 :     // Square
+    type == 2 ? base[i] = sin(pos * 2 * $pi) :      // Sine
+    type == 3 ? base[i] = pos < 0.2 ? 1 : -1 :      // Pulse (20% duty)
+    type == 4 ? base[i] = rand(2) - 1 :             // Noise
+    type == 5 ? base[i] = abs(2 * pos - 1) * 2 - 1 : // Triangle
+    type == 6 ? base[i] = (2 * pos - 1) + (2 * ((pos + 0.5) % 1) - 1) * 0.5 : // Double saw
+    base[i] = sin(pos * 2 * $pi) * sin(pos * 4 * $pi); // FM-ish
+    i += 1;
+  );
+);
+
+// Build 8 wavetables in sequence
+wt0 = 0;       build_wt(wt0, 0);
+wt1 = wt_size; build_wt(wt1, 1);
+wt2 = wt_size*2; build_wt(wt2, 2);
+wt3 = wt_size*3; build_wt(wt3, 3);
+wt4 = wt_size*4; build_wt(wt4, 4);
+wt5 = wt_size*5; build_wt(wt5, 5);
+wt6 = wt_size*6; build_wt(wt6, 6);
+wt7 = wt_size*7; build_wt(wt7, 7);
+
+@slider
+note_freq = 440 * 2^(slider1 / 12);
+wt_pos = slider2;
+wt_type = slider3;
+out_gain = 10^(slider4 / 20);
+
+@block
+midirecv(offset, msg1, msg2, msg3) ? (
+  (msg1 & 0xF0) == 0x90 && msg3 > 0 ? (
+    note_freq = 440 * 2^((msg2 - 69) / 12);
+  );
+);
+
+@sample
+// Advance phase
+phase_inc = note_freq / srate;
+phase += phase_inc;
+phase >= 1 ? phase -= 1;
+
+// Select wavetable base address
+wt_base = wt_type * wt_size;
+
+// Read position within table (with linear interpolation)
+read_pos = phase * wt_size;
+frac = read_pos - floor(read_pos);
+idx = floor(read_pos);
+idx_next = (idx + 1) % wt_size;
+
+// Blend between adjacent tables for morphing (wt_pos 0-7)
+table_idx = floor(wt_pos);
+table_frac = wt_pos - table_idx;
+wt_a = table_idx * wt_size;
+wt_b = ((table_idx + 1) % 8) * wt_size;
+
+sample_a = wt_base == 0 ? 0;  // placeholder, we use direct read
+// Read from selected table
+val_a = wt_base[idx] * (1 - frac) + wt_base[idx_next] * frac;
+// Crossfade with next table for morphing
+val_b = wt_b[idx] * (1 - frac) + wt_b[idx_next] * frac;
+output = val_a * (1 - table_frac) + val_b * table_frac;
+
+spl0 = output * out_gain;
+spl1 = output * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Pitch | -24 to +24 semitones | 0 (A4) | Base pitch (also responds to MIDI) |
+| Wave Position | 0–7 | 0 | Morph position between 8 wavetables |
+| Wave Table | 0-7 (enum) | 0 (Saw) | Base waveform: Saw, Square, Sine, Pulse, Noise, Triangle, Double Saw, FM |
+| Output | -12 to +12 dB | 0 | Output level |
+
+## Use Case
+Wavetable synthesis with 8 base waveforms and morphing between them. The Wave Position slider crossfades between adjacent tables for smooth timbral transitions. MIDI-triggered for melodic use. Use for synth bass, leads, pads, and any sound that needs evolving timbre.
+
+## Compatibility
+- **Before**: Not applicable (generator)
+- **After**: Filter (Moog or SVF for classic subtractive), reverb, delay, chorus
+- **Requires**: 8 × 2048 wavetable buffers in memory
+- **Conflicts**: Monophonic. For polyphony, instantiate multiple
+
+## Source
+Standard wavetable synthesis with linear interpolation and table morphing.
+Waveform definitions from musicdsp.org and classic synth DSP.
+Referenced in Joep Van Lier's Yutani synth (wavetable support).
+License: public domain.
+
+<!-- test: MIDI A4. WaveTable=Saw, Wave Position sweep 0→7. Should hear smooth morph from saw to FM-like. Each table position should have distinct character. -->
+)MD";
+
+inline constexpr const char* kJsfxAlgorithmsTapeWowFlutterRef = R"MD(# Tape Wow & Flutter (Tape Emulation)
+
+## Code
+```jsfx
+desc:Tape Wow & Flutter
+
+slider1:2<0,10,0.1>Wow Depth (ms)
+slider2:0.5<0.1,5,0.01>Wow Rate (Hz)
+slider3:0.5<0,5,0.1>Flutter Depth (ms)
+slider4:50<10,200,1>Flutter Rate (Hz)
+slider5:0<-12,12,0.1>Output (dB)
+
+@init
+denorm = 1e-25;
+buf_len = srate * 0.05;  // 50ms buffer
+buf_l = 0; buf_r = 0; memset(buf_l, 0, buf_len); memset(buf_r, 0, buf_len);
+wpos = 0;
+wow_phase = 0;
+flutter_phase = 0;
+
+@slider
+wow_depth = slider1 / 1000 * srate;
+wow_rate = slider2;
+flutter_depth = slider3 / 1000 * srate;
+flutter_rate = slider4;
+out_gain = 10^(slider5 / 20);
+
+@sample
+// Write to buffer
+buf_l[wpos] = spl0;
+buf_r[wpos] = spl1;
+
+// Wow: slow LFO (0.1-5 Hz) modulating delay time
+wow_phase += wow_rate / srate;
+wow_phase >= 1 ? wow_phase -= 1;
+wow_mod = sin(wow_phase * 2 * $pi) * wow_depth;
+
+// Flutter: fast LFO (10-200 Hz) modulating delay time
+flutter_phase += flutter_rate / srate;
+flutter_phase >= 1 ? flutter_phase -= 1;
+flutter_mod = sin(flutter_phase * 2 * $pi) * flutter_depth;
+
+// Total delay modulation
+total_mod = wow_mod + flutter_mod;
+center_delay = srate * 0.02;  // 20ms center
+read_pos = wpos - center_delay - total_mod;
+
+// Wrap and interpolate
+read_pos < 0 ? read_pos += buf_len;
+frac = read_pos - floor(read_pos);
+rpos_i = floor(read_pos) % buf_len;
+rpos_next = (rpos_i + 1) % buf_len;
+
+spl0 = (buf_l[rpos_i] * (1 - frac) + buf_l[rpos_next] * frac) * out_gain;
+spl1 = (buf_r[rpos_i] * (1 - frac) + buf_r[rpos_next] * frac) * out_gain;
+
+wpos = (wpos + 1) % buf_len;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Wow Depth | 0–10 ms | 2 | Slow pitch variation. The "wobbly" tape sound |
+| Wow Rate | 0.1–5 Hz | 0.5 | Speed of wow. Real tape: ~0.5-2 Hz |
+| Flutter Depth | 0–5 ms | 0.5 | Fast pitch variation. The "buzzing" tape sound |
+| Flutter Rate | 10–200 Hz | 50 | Speed of flutter. Real tape: ~30-100 Hz |
+| Output | -12 to +12 dB | 0 | Post-wow output level |
+
+## Use Case
+Tape machine emulation. Wow = slow speed variations (motor instability, tape stretch). Flutter = fast variations (tape scrape, bearing noise). Combine with tanh saturation for full tape emulation. Use on vocals, guitars, and any sound that needs "vintage" character.
+
+## Compatibility
+- **Before**: EQ, saturation (the tape saturation before the wow/flutter)
+- **After**: Reverb, delay, chorus
+- **Requires**: 50ms circular buffer, two LFOs with independent phase
+- **Conflicts**: Cascading wow/flutter compounds the effect — usually one instance is enough
+
+## Source
+Standard modulated delay for tape wow/flutter. Wow = low-frequency LFO (0.5-2 Hz),
+flutter = high-frequency LFO (30-100 Hz). Referenced in DAFx papers on tape emulation.
+License: public domain.
+
+<!-- test: Sine at 1 kHz. Wow=2ms@0.5Hz should show slow pitch drift. Flutter=0.5ms@50Hz should add a subtle buzz. Combined should sound like an old tape machine. -->
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns00ManifestoRef = R"MD(# DSP Design Manifesto
+
+> **MANDATORY READING before generating ANY JSFX effect.**
+> If you skip this, your effect will have redundant sliders, poor gain staging,
+> and a confusing UI. Read ALL rules. They are non-negotiable.
+
+## Rule 1: One concept, one slider
+
+Every slider must change the sound audibly. If two controls do similar things, **merge them into a mode selector**.
+
+**Good**: `slider1:0<0,2,1{Straight,Dotted,Triplet}>Note Mode` — one control, three behaviors.
+**Bad**: `slider1:250<1,2000,1>Time (ms)` AND `slider2:0<0,2,1{Straight,Dotted,Triplet}>Mode` — redundant. If you have a mode, derive the time from BPM. If you have a time slider, let the user dial it in. **Never both.**
+
+## Rule 2: Respect the signal chain
+
+```
+DC block → EQ → Saturation → Compression → Delay → Reverb → Modulation → Pitch
+```
+
+- DC blocking ALWAYS after any saturation with drive > 2.0
+- Denormal prevention ALWAYS: `denorm = 1e-25;` in `@init` + `+=/-=` in `@sample`
+- EQ before saturation to shape WHICH frequencies distort
+- Compression after saturation to control the added harmonics
+- Delay before reverb (reverb adds space to the repeats)
+- Modulation last (chorus/flanger on the final sound)
+
+## Rule 3: Gain stage every stage
+
+After each processing block, output level ≈ input level. If a saturation stage adds 6 dB, add -6 dB makeup gain immediately after. Don't let the signal get louder or quieter with each stage — the user should be able to bypass the effect and hear the same volume.
+
+**Pattern**:
+```jsfx
+// After saturation
+spl0 *= makeup_gain;  // compensate for drive attenuation
+spl1 *= makeup_gain;
+```
+
+## Rule 4: Name sliders for musicians, not programmers
+
+| Bad (programmer) | Good (musician) |
+|---|---|
+| Lowpass Frequency | Warmth / Tone |
+| Asymmetry Bias | Character |
+| Feedback Delay Time | Space / Echoes |
+| RMS Window Size | Smoothness |
+| Biquad Q | Resonance |
+| Dry/Wet Mix | Mix |
+| Threshold (dB) | Sensitivity |
+
+If a parameter name requires DSP knowledge to understand, rename it.
+
+## Rule 5: Start simple, add complexity only when needed
+
+A 4-slider effect that sounds great > a 20-slider effect that's confusing.
+
+- Start with the minimum parameters that produce a usable sound
+- Hide advanced parameters with `sliderX:-Hidden parameter name`
+- If the user asks for more control, add it then
+- Default values should produce a good sound with zero adjustment
+
+## Rule 6: Always include infrastructure
+
+Every JSFX MUST include:
+
+```jsfx
+@init
+denorm = 1e-25;
+```
+
+**`1e-25` is scientific notation — a SINGLE numeric literal.**
+It means `0.00000000000000000000000001`.
+Do NOT write `1 <!> e-25` or `1 * e^(-25)` or `1 * exp(-25)`.
+The `e` in `1e-25` is part of the number, NOT Euler's number.
+Euler's number in JSFX is `$e` (with dollar sign).
+
+```jsfx
+@sample
+// ... your DSP code ...
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+If your effect has saturation with drive > 2.0, ALSO include DC blocking after it.
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns01ParameterDesignRef = R"MD(# Parameter Design Patterns
+
+## Pattern 1: Mode selector vs. Separate sliders
+
+**When to use a mode selector (`sliderX:0<0,N,1{Option1,Option2,...}>`):**
+- The parameter has discrete, named options (dotted, triplet, straight)
+- The options are mutually exclusive
+- The user thinks in categories, not numbers
+
+**When to use a continuous slider:**
+- The parameter is a range (0-100%, 20-20000 Hz, -12 to +12 dB)
+- The user needs fine control
+- The value space is continuous
+
+**ANTI-PATTERN: Don't use BOTH for the same concept.**
+If you have a Mode selector, derive the actual value from it programmatically.
+If you have a continuous slider, let the user dial it in.
+Do NOT put both a mode selector and a slider for the same parameter.
+
+**Example: Delay time with tempo sync**
+```jsfx
+// GOOD: Mode selector drives the time
+slider1:0<0,3,1{Free,Straight,Dotted,Triplet}>Sync Mode
+slider2:120<40,300,1>BPM (Hidden)
+// In @slider: derive time from mode + BPM
+// In Free mode: use slider3 for manual ms
+slider3:250<1,2000,1>Time (ms, Free mode only)
+
+// BAD: Both slider AND mode for the same thing
+slider1:250<1,2000,1>Time (ms)
+slider2:0<0,2,1{Straight,Dotted,Triplet}>Mode
+// User doesn't know which one to use. Confusing.
+```
+
+## Pattern 2: Hidden sliders for internal state
+
+Use `sliderX:-Hidden parameter name` for:
+- Internal state the user shouldn't touch (envelope state, filter coefficients)
+- Parameters set once and forgotten (oscillator phase, buffer positions)
+- Debug values that only matter during development
+- BPM sync source (set automatically, not user-adjustable)
+
+```jsfx
+slider20:120<40,300,1>-BPM (auto-synced)
+slider21:0<0,1,1>-Internal smoothing state
+```
+
+## Pattern 3: Group related parameters
+
+Organize sliders in logical groups. REAPER displays them in order.
+
+```jsfx
+// Input section (sliders 1-3)
+slider1:0<-24,24,0.1>Input Gain (dB)
+slider2:0<0,1,1{Peak,RMS}>Detection Mode
+
+// Processing section (sliders 4-7)
+slider4:-12<-60,0,0.1>Threshold (dB)
+slider5:4<1,20,0.1>Ratio
+slider6:10<0.1,100,0.1>Attack (ms)
+slider7:50<10,500,1>Release (ms)
+
+// Output section (sliders 8-9)
+slider8:0<-12,12,0.1>Makeup Gain (dB)
+slider9:100<0,100,1>Mix (%)
+```
+
+## Pattern 4: Tempo sync pattern
+
+When an effect supports tempo sync, use this pattern:
+
+```jsfx
+slider1:0<0,1,1{Free,Sync}>Time Mode
+// Free mode: manual time
+slider2:250<1,2000,1>Time (ms)
+// Sync mode: note division
+slider3:0<0,5,1{1/4,1/8,1/16,1/4T,1/8T,1/16T}>Note Division
+
+@slider
+time_mode == 0 ? (
+  delay_samples = slider2 / 1000 * srate;
+) : (
+  // Derive from BPM + note division
+  beat_samples = 60 / tempo * srate;  // tempo is a JSFX built-in
+  division_factor = (slider3 == 0) ? 1 :    // 1/4
+                    (slider3 == 1) ? 0.5 :  // 1/8
+                    (slider3 == 2) ? 0.25 : // 1/16
+                    (slider3 == 3) ? 0.75 : // 1/4T (triplet)
+                    (slider3 == 4) ? 0.375 : // 1/8T
+                    0.1875;                   // 1/16T
+  delay_samples = beat_samples * division_factor;
 );
 ```
 
-### Soft saturation (tanh)
-```
+## Pattern 5: Dry/wet mix
+
+Always use a single Mix slider, not separate Dry and Wet sliders:
+
+```jsfx
+// GOOD: Single mix slider
+slider9:50<0,100,1>Mix (%)
+
 @sample
-drive = slider1 * 0.01;
-mix   = slider2;
-dry_l = spl0;
-dry_r = spl1;
-spl0 = tanh(spl0 * (1 + drive * 10)) * (1 - mix) + spl0 * mix;
-spl1 = tanh(spl1 * (1 + drive * 10)) * (1 - mix) + spl1 * mix;
+mix = slider9 / 100;
+spl0 = spl0 * (1 - mix) + wet_l * mix;
+spl1 = spl1 * (1 - mix) + wet_r * mix;
+
+// BAD: Separate dry and wet (confusing, redundant)
+slider9:0<-20,20,0.1>Dry (dB)
+slider10:0<-20,20,0.1>Wet (dB)
+```
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns02SignalFlowRef = R"MD(# Signal Flow Patterns
+
+## Canonical order
+
+```
+Input → DC Block → EQ → Saturation → Compression → Delay → Reverb → Modulation → Pitch → Output
 ```
 
-### Simple lowpass (one-pole)
+This order exists for acoustic reasons:
+- DC block first: clean the signal before anything
+- EQ before saturation: shape WHICH frequencies distort
+- Saturation before compression: saturate the peaks, then control them
+- Compression after saturation: tame the harmonics that saturation added
+- Delay before reverb: reverb adds space to the repeats
+- Modulation last: chorus/flanger on the final sound
+- Pitch last: pitch shifting works best on a stable signal
+
+## Serial vs. Parallel routing
+
+### Serial (default)
+Each stage feeds the next. Simple, predictable, CPU-efficient.
+```jsfx
+@sample
+spl0 = dc_block(spl0);
+spl0 = eq(spl0);
+spl0 = saturate(spl0);
+spl0 = compress(spl0);
 ```
+
+### Parallel (for wet/dry or multi-band)
+Split the signal, process independently, mix back.
+```jsfx
+@sample
+dry_l = spl0;
+wet_l = saturate(spl0);
+spl0 = dry_l * (1 - mix) + wet_l * mix;
+```
+
+### Multi-band (for compressors, saturators)
+Split into frequency bands, process each, sum back.
+```jsfx
+@sample
+// Split into 3 bands
+low = lowpass(spl0, 200);
+mid = bandpass(spl0, 200, 2000);
+high = highpass(spl0, 2000);
+// Process each band independently
+low = compress(low, threshold_low);
+mid = compress(mid, threshold_mid);
+high = compress(high, threshold_high);
+// Sum
+spl0 = low + mid + high;
+```
+
+## Feedback paths
+
+Feedback loops require careful design:
+- Always include a gain coefficient < 1.0 to prevent runaway
+- Always include DC blocking in the feedback path
+- Smooth parameter changes to avoid clicks in the feedback
+
+```jsfx
+@sample
+// Feedback delay with safety
+feedback = delay_buffer[rpos] * feedback_gain;  // feedback_gain < 1.0
+feedback = dc_block(feedback);                   // prevent DC buildup
+delay_buffer[wpos] = spl0 + feedback;
+```
+
+## Sidechain routing
+
+For sidechain compression, the detection signal is separate from the audio:
+
+```jsfx
+@sample
+// Audio path
+spl0 = spl0 * gain_reduction;
+spl1 = spl1 * gain_reduction;
+
+// Detection path (separate)
+detector = sidechain_input;  // could be another track, or a filtered version
+gain_reduction = compressor_gain(detector, threshold, ratio);
+```
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns03UiConventionsRef = R"MD(# UI Conventions for JSFX
+
+## Slider ordering
+
+REAPER displays sliders in numerical order (slider1, slider2, ...). Group them logically:
+
+```
+1-3:   Input controls (gain, drive, threshold)
+4-7:   Processing controls (the effect's core parameters)
+8-10:  Output controls (makeup gain, mix, output level)
+11+:   Advanced/hidden controls
+```
+
+## Slider naming conventions
+
+| Category | Convention | Examples |
+|---|---|---|
+| Gain | "(dB)" suffix | "Input Gain (dB)", "Makeup Gain (dB)" |
+| Time | "(ms)" or "(s)" suffix | "Attack (ms)", "Decay (s)" |
+| Frequency | "(Hz)" suffix | "Cutoff (Hz)", "Center Freq (Hz)" |
+| Percentage | "(%)" suffix | "Mix (%)", "Width (%)" |
+| Ratios | "(:1)" suffix | "Ratio (:1)" |
+| Modes | Enum with descriptive labels | "{Peak,RMS}", "{Free,Sync}" |
+| Musical | No suffix, use musical terms | "Warmth", "Character", "Space" |
+
+## @gfx section (optional but recommended for complex effects)
+
+```jsfx
+@gfx 300 200
+// Clear background
+gfx_clear = 0x202020;
+
+// Draw title
+gfx_r = gfx_g = gfx_b = 1;
+gfx_x = 10; gfx_y = 10;
+gfx_drawstr("Effect Name");
+
+// Draw parameter values
+gfx_x = 10; gfx_y = 30;
+gfx_printf("Drive: %.1f", slider1);
+gfx_x = 10; gfx_y = 50;
+gfx_printf("Output: %.1f dB", slider2);
+```
+
+## Metering (optional)
+
+For dynamics effects, show gain reduction:
+
+```jsfx
+@gfx 300 100
+// Gain reduction meter
+gr_db = 20 * log10(max(env_l, 0.0001));
+gr_normalized = min(1, -gr_db / 20);  // 0 to 1, 20dB reduction = full
+gfx_r = 0.8; gfx_g = 0.2; gfx_b = 0.2;
+gfx_rect(10, 10, gr_normalized * 200, 20);
+```
+
+## Tag conventions
+
+Use `desc:` and `tags:` for discoverability:
+
+```jsfx
+desc:My Effect Name
+//tags: delay modulation tempo-sync
+//author: ReaForge
+```
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns04GainStagingRef = R"MD(# Gain Staging Patterns
+
+## Principle: output ≈ input at every stage
+
+When a user bypasses your effect, they should hear the same volume. If your effect makes the signal louder or quieter, the user has to readjust their mix — that's bad design.
+
+## Pattern 1: Makeup gain after saturation
+
+Saturation reduces peak level (tanh asymptotically approaches 1.0). Compensate:
+
+```jsfx
+@sample
+// Saturation
+out = tanh(in * drive);
+// Makeup: drive=1 → no compensation, drive=10 → +20dB compensation
+compensation = 1 / tanh(drive);  // approximate
+out *= compensation * makeup_slider;
+```
+
+## Pattern 2: Dry/wet with constant power
+
+When mixing dry and wet, use equal-power crossfade to avoid volume dips:
+
+```jsfx
+@sample
+mix = slider_mix / 100;
+// Equal-power: dry_gain = cos(mix * pi/2), wet_gain = sin(mix * pi/2)
+dry_gain = cos(mix * $pi / 2);
+wet_gain = sin(mix * $pi / 2);
+spl0 = spl0 * dry_gain + wet_l * wet_gain;
+spl1 = spl1 * dry_gain + wet_r * wet_gain;
+```
+
+## Pattern 3: Filter compensation
+
+Resonant filters can boost the signal at the cutoff frequency. Add a gain trim:
+
+```jsfx
+@sample
+out = biquad(in);
+// If Q > 1, the peak at cutoff can be up to +Q*3 dB
+// Compensate: reduce output by the expected peak
+peak_compensation = 1 / (1 + (slider_q - 0.707) * 0.5);
+out *= peak_compensation;
+```
+
+## Pattern 4: Compression output matching
+
+A compressor reduces peaks. Add makeup gain to restore the perceived loudness:
+
+```jsfx
+@sample
+// Compression
+gain_reduction = compute_gr(input, threshold, ratio);
+out = input * gain_reduction;
+// Makeup: approximately compensate for the average gain reduction
+// The user adjusts this by ear, but provide a sensible default
+out *= makeup_gain;
+```
+
+## Pattern 5: Multi-stage gain budget
+
+For complex effects with multiple stages, track the cumulative gain:
+
+```jsfx
+@init
+total_gain_db = 0;
+
+@slider
+// Each stage contributes to the total
+stage1_gain = 10^(slider_drive / 20);     // +X dB from drive
+stage1_loss = 1 / tanh(slider_drive);     // -Y dB from saturation
+stage2_gain = 10^(slider_makeup / 20);    // +Z dB from makeup
+// Total should be ≈ 0 dB
+total_gain = stage1_gain * stage1_loss * stage2_gain;
+```
+)MD";
+
+inline constexpr const char* kJsfxDesignPatterns05AntiPatternsRef = R"MD(# Anti-Patterns: What NOT to do
+
+## 1. Redundant sliders for the same concept
+
+**Bad**: Time slider AND mode selector for delay time.
+```jsfx
+slider1:250<1,2000,1>Time (ms)
+slider2:0<0,2,1{Straight,Dotted,Triplet}>Mode
+```
+**Why it's bad**: The user doesn't know which one controls the delay. If mode is "Dotted", does the time slider still apply? It's ambiguous.
+**Fix**: Use mode selector, derive time from BPM. Or use time slider, no mode.
+
+## 2. Missing denormal prevention
+
+**Bad**: No `denorm` in a JSFX with feedback loops or filters.
+**Why it's bad**: Silent sections cause CPU spikes (100% core usage). REAPER freezes.
+**Fix**: Always include `denorm = 1e-25;` in `@init` and `+=/-=` in `@sample`.
+
+## 3. Missing DC blocking after saturation
+
+**Bad**: Asymmetric tanh without DC blocking.
+**Why it's bad**: DC offset accumulates, causes clicks when the signal hits the next stage, reduces headroom, messes up meters.
+**Fix**: Add a DC blocking filter after any saturation with drive > 2.0 or bias > 0.
+
+## 4. No gain staging
+
+**Bad**: Saturation with drive=10 but no makeup gain.
+**Why it's bad**: The output is much quieter than the input. The user has to crank their mixer to compensate, introducing noise.
+**Fix**: Add a makeup gain slider. Default to approximately compensating for the drive.
+
+## 5. Too many sliders
+
+**Bad**: 20 visible sliders for a simple delay.
+**Why it's bad**: The user is overwhelmed. They can't find the parameter they want. The UI is cluttered.
+**Fix**: Start with 4-6 sliders. Hide advanced parameters with `-Hidden`.
+
+## 6. Programmer-named sliders
+
+**Bad**: `slider1:0.707<0.1,4,0.01>Biquad Q Factor`
+**Why it's bad**: "Biquad Q Factor" means nothing to a musician.
+**Fix**: `slider1:0.707<0.1,4,0.01>Resonance`
+
+## 7. No dry/wet mix
+
+**Bad**: Effect is 100% wet, no mix control.
+**Why it's bad**: The user can't blend the effect with the original signal. They have to use REAPER's dry/wet which doesn't sound as good.
+**Fix**: Always include a Mix slider (0-100%).
+
+## 8. Unstable feedback
+
+**Bad**: Feedback gain can exceed 1.0.
+**Why it's bad**: The feedback loop runs away, volume increases exponentially, speakers blow out.
+**Fix**: Clamp feedback gain: `fb = min(fb, 0.99);`
+
+## 9. No smoothing on parameter changes
+
+**Bad**: Changing a slider causes an audible click.
+**Why it's bad**: Automating parameters sounds terrible.
+**Fix**: Smooth parameter changes in @block:
+```jsfx
+@block
+target_freq = slider1;
+current_freq = current_freq * 0.999 + target_freq * 0.001;
+```
+
+## 10. Buffer too small
+
+**Bad**: 100ms buffer for a 2-second delay.
+**Why it's bad**: The delay wraps around and you hear the wrong audio.
+**Fix**: Calculate buffer size from the maximum possible delay time: `buf_len = srate * max_delay_seconds;`
+
+## 11. No `@serialize` for state preservation
+
+**Bad**: Filter state is lost when REAPER saves/loads the project.
+**Why it's bad**: The filter "jumps" when reopening a project.
+**Fix**: Use `@serialize` to save/restore internal state.
+
+## 12. Separate Dry and Wet sliders
+
+**Bad**: `slider9:0<-20,20>Dry (dB)` AND `slider10:0<-20,20>Wet (dB)`
+**Why it's bad**: Redundant. The user has to adjust two sliders to change one thing (the mix).
+**Fix**: Single `Mix (%)` slider.
+
+## 13. No tempo sync option
+
+**Bad**: Delay only has manual ms, no way to sync to BPM.
+**Why it's bad**: If the user changes tempo, they have to manually adjust the delay time.
+**Fix**: Add a Free/Sync mode selector (see parameter design pattern 4).
+
+## 14. Clipping at the output
+
+**Bad**: No output level control, signal can exceed 0 dBFS.
+**Why it's bad**: Digital clipping, harsh sound, damaged speakers.
+**Fix**: Add an output gain slider. Optionally add a soft clipper at the output: `spl0 = tanh(spl0);`
+
+## 15. Ignoring stereo
+
+**Bad**: Processing only spl0, ignoring spl1.
+**Why it's bad**: The right channel is silent or unprocessed.
+**Fix**: Always process both channels. If the effect is mono, sum to mono first, then duplicate to both outputs.
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesDelaysFeedbackDelayRef = R"MD(# Feedback Delay (Delays)
+
+## Code
+```jsfx
+desc:Feedback Delay
+
+slider1:250<1,2000,1>Time (ms)
+slider2:-12<-60,0,0.1>Feedback (dB)
+slider3:0<-20,20,0.1>Wet Gain (dB)
+slider4:0<-20,20,0.1>Dry Gain (dB)
+
+@init
+denorm = 1e-25;
+// Circular buffer
+buf_len = srate * 2; // 2 seconds max
+buf_l = 0; buf_r = 0;
+memset(buf_l, 0, buf_len);
+memset(buf_r, 0, buf_len);
+wpos = 0;
+
+@slider
+// Smooth parameter changes to avoid clicks
+target_dtime = slider1 / 1000 * srate;  // delay in samples
+smooth = 0.001;  // smoothing coefficient for feedback
+target_fb = 10^(slider2 / 20);           // feedback linear
+wet_g = 10^(slider3 / 20);
+dry_g = 10^(slider4 / 20);
+
+@sample
+// Read from circular buffer
+rpos = wpos - target_dtime;
+rpos < 0 ? rpos += buf_len;
+// Linear interpolation for fractional delay
+frac = rpos - floor(rpos);
+rpos_i = floor(rpos);
+rpos_next = (rpos_i + 1) % buf_len;
+del_l = buf_l[rpos_i] * (1 - frac) + buf_l[rpos_next] * frac;
+del_r = buf_r[rpos_i] * (1 - frac) + buf_r[rpos_next] * frac;
+
+// Write input + feedback to buffer
+fb_smooth = fb_smooth * (1 - smooth) + target_fb * smooth;
+buf_l[wpos] = spl0 + del_l * fb_smooth;
+buf_r[wpos] = spl1 + del_r * fb_smooth;
+wpos = (wpos + 1) % buf_len;
+
+// Wet/dry mix
+spl0 = spl0 * dry_g + del_l * wet_g;
+spl1 = spl1 * dry_g + del_r * wet_g;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Time | 1–2000 ms | 250 | Delay time. Up to 2 seconds. |
+| Feedback | -60 to 0 dB | -12 | Feedback level. -60 = single repeat. 0 = infinite. |
+| Wet Gain | -20 to +20 dB | 0 | Wet signal level. |
+| Dry Gain | -20 to +20 dB | 0 | Dry signal level. |
+
+## Use Case
+Basic echo, slap delay, rhythmic repeats. Foundation for all delay-based effects. Combine with filters in the feedback loop for tape-style degradation.
+
+## Compatibility
+- **Before**: Saturation (to distort the repeats), filters (to shape the echo tone)
+- **After**: Reverb (to add space to the repeats)
+- **Requires**: Circular buffer allocation in `@init` (srate * 2 samples)
+- **Conflicts**: Multiple parallel delays need separate instances or a multi-tap design
+
+## Source
+Standard circular buffer delay with linear interpolation. JSFX `memset()` for buffer init. License: public domain.
+
+<!-- test: Impulse at 0 dB. Time=500ms, Feedback=-6dB. Output should show distinct repeats decaying ~6dB each. No clicks, no DC buildup. -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesDelaysModulatedDelayRef = R"MD(# Modulated Delay / Flanger Base (Delays)
+
+## Code
+```jsfx
+desc:Modulated Delay / Flanger Base
+
+slider1:5<0.5,20,0.1>Time (ms)
+slider2:3<0,15,0.1>Depth (ms)
+slider3:0.5<0.05,5,0.01>Rate (Hz)
+slider4:0<-20,20,0.1>Wet Gain (dB)
+
+@init
+denorm = 1e-25;
+buf_len = srate * 0.05; // 50ms buffer
+buf_l = 0; buf_r = 0; memset(buf_l, 0, buf_len); memset(buf_r, 0, buf_len);
+wpos = 0; phase = 0;
+
+@slider
+center_time = slider1 / 1000 * srate;
+depth_time = slider2 / 1000 * srate;
+rate = slider3;
+wet_g = 10^(slider4 / 20);
+
+@sample
+// LFO for delay modulation (sine)
+phase += rate / srate;
+phase >= 1 ? phase -= 1;
+mod = sin(phase * 2 * $pi) * depth_time;
+total_time = center_time + mod;
+
+// Read from buffer (linear interpolation)
+rpos = wpos - total_time; rpos < 0 ? rpos += buf_len;
+frac = rpos - floor(rpos); rpos_i = floor(rpos);
+rpos_next = (rpos_i + 1) % buf_len;
+del_l = buf_l[rpos_i] * (1 - frac) + buf_l[rpos_next] * frac;
+del_r = buf_r[rpos_i] * (1 - frac) + buf_r[rpos_next] * frac;
+
+// Write dry signal to buffer (no feedback for flanger)
+buf_l[wpos] = spl0; buf_r[wpos] = spl1;
+wpos = (wpos + 1) % buf_len;
+
+// Mix
+spl0 += del_l * wet_g;
+spl1 += del_r * wet_g;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Time | 0.5–20 ms | 5 | Center delay time. Lower = flanger, higher = chorus. |
+| Depth | 0–15 ms | 3 | LFO modulation depth. |
+| Rate | 0.05–5 Hz | 0.5 | LFO speed. |
+| Wet Gain | -20 to +20 dB | 0 | Wet signal level (blended with dry). |
+
+## Use Case
+Flanger (short time, high depth), chorus (longer time, low depth), vibrato (wet only). The modulated delay is the foundation for all short-time modulation effects. Add feedback for resonant flanging.
+
+## Compatibility
+- **Before**: Saturation (to add harmonics to the modulated signal)
+- **After**: Reverb (to spatialize the chorus)
+- **Requires**: Small buffer (50ms), LFO phase tracking
+- **Conflicts**: Multiple modulated delays at different rates can create comb filtering — use intentionally for ensemble effects
+
+## Source
+Standard modulated delay line with sinusoidal LFO. JSFX buffer + `sin()` built-in. License: public domain.
+
+<!-- test: Sine input at 1kHz. Rate=0.5Hz, Depth=5ms. Output should show periodic pitch modulation (vibrato). -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesDelaysPingPongDelayRef = R"MD(# Ping-Pong Delay (Delays)
+
+## Code
+```jsfx
+desc:Ping-Pong Delay
+
+slider1:300<50,1000,1>Time (ms)
+slider2:-8<-60,0,0.1>Feedback (dB)
+slider3:0<-20,20,0.1>Wet Gain (dB)
+slider4:0<-20,20,0.1>Dry Gain (dB)
+
+@init
+denorm = 1e-25;
+buf_len = srate * 1; // 1 second mono buffer
+buf = 0; memset(buf, 0, buf_len);
+wpos = 0;
+ping = 1; // 1 = left, 0 = right
+
+@slider
+target_dtime = slider1 / 1000 * srate;
+smooth = 0.001;
+target_fb = 10^(slider2 / 20);
+wet_g = 10^(slider3 / 20);
+dry_g = 10^(slider4 / 20);
+
+@sample
+// Read delayed sample
+rpos = wpos - target_dtime; rpos < 0 ? rpos += buf_len;
+frac = rpos - floor(rpos); rpos_i = floor(rpos);
+rpos_next = (rpos_i + 1) % buf_len;
+del = buf[rpos_i] * (1 - frac) + buf[rpos_next] * frac;
+
+// Mono input → buffer, alternating output
+mono = (spl0 + spl1) * 0.5;
+fb_smooth = fb_smooth * (1 - smooth) + target_fb * smooth;
+buf[wpos] = mono + del * fb_smooth;
+wpos = (wpos + 1) % buf_len;
+
+// Alternate delayed output between L and R
+ping ? (
+    spl0 = spl0 * dry_g + del * wet_g;
+    spl1 = spl1 * dry_g;
+) : (
+    spl0 = spl0 * dry_g;
+    spl1 = spl1 * dry_g + del * wet_g;
+);
+ping = !ping;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Time | 50–1000 ms | 300 | Delay time. Mono buffer. |
+| Feedback | -60 to 0 dB | -8 | Decay per ping-pong pair. |
+| Wet Gain | -20 to +20 dB | 0 | Wet level. |
+| Dry Gain | -20 to +20 dB | 0 | Dry level. |
+
+## Use Case
+Stereo ping-pong echo. Creates width and movement. Classic for guitars, vocals, synth arpeggios. The alternating L/R output gives a bouncing spatial effect.
+
+## Compatibility
+- **Before**: Filters, saturation (to shape the echo tone)
+- **After**: Reverb (to smooth the stereo image)
+- **Requires**: Mono buffer (ping-pong alternates, not true stereo)
+- **Conflicts**: Cascade with feedback delay for multi-tap rhythmic patterns — but watch gain staging
+
+## Source
+Standard ping-pong delay. JSFX mono buffer with alternating output. License: public domain.
+
+<!-- test: Impulse. Time=300ms, Feedback=-8dB. Output should alternate L→R→L→R with ~8dB decay per pair. -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesFiltersOnePoleLowpassRef = R"MD(# One-Pole Lowpass (Filters)
+
+## Code
+```jsfx
+desc:One-Pole Lowpass Filter
+
+slider1:5000<20,20000,1>Frequency (Hz)
+
+@init
+denorm = 1e-25;
+a0_l = a0_r = 0;
+
+@slider
+// One-pole lowpass: y[n] = a * x[n] + (1-a) * y[n-1]
+// where a = 1 - exp(-2*pi*freq/srate)
+a0 = 1 - exp(-2 * $pi * slider1 / srate);
+
+@sample
+// Left
+spl0 = a0 * spl0 + (1 - a0) * spl0_prev;
+spl0_prev = spl0;
+
+// Right
+spl1 = a0 * spl1 + (1 - a0) * spl1_prev;
+spl1_prev = spl1;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Frequency | 20–20000 Hz | 5000 | Cutoff frequency. 6 dB/octave roll-off. |
+
+## Use Case
+Quick, cheap lowpass for taming high frequencies without the computational cost of a biquad. Use when you need a simple tone control or anti-aliasing before a nonlinear stage. Not suitable for precise filtering (use RBJ for that).
+
+## Compatibility
+- **Before**: Any primitive
+- **After**: Any primitive — computationally cheap, safe to cascade
+- **Requires**: `denorm = 1e-25;` in `@init`
+- **Conflicts**: None — composable with everything
+
+## Source
+Standard one-pole IIR filter. The coefficient `a = 1 - exp(-2*pi*fc/fs)` is the canonical formula. Documented in Julius O. Smith's "Introduction to Digital Filters". License: public domain.
+
+<!-- test: White noise. Set freq=1000 Hz. Output should show -3dB at 1000 Hz, -6dB at 2000 Hz (6dB/oct slope). -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesFiltersRbjHighpassRef = R"MD(# RBJ Highpass (Filters)
+
+## Code
+```jsfx
+desc:RBJ Highpass Filter
+
+slider1:500<20,20000,1>Frequency (Hz)
+slider2:0.707<0.1,4,0.01>Q
+
+@init
+denorm = 1e-25;
+b0 = b1 = b2 = a1 = a2 = 0;
+x1_l = x2_l = y1_l = y2_l = 0;
+x1_r = x2_r = y1_r = y2_r = 0;
+
+@slider
+// RBJ cookbook coefficients: highpass
+w0 = 2 * $pi * slider1 / srate;
+alpha = sin(w0) / (2 * slider2);
+cos_w0 = cos(w0);
+
+b0 = (1 + cos_w0) / 2;
+b1 = -(1 + cos_w0);
+b2 = (1 + cos_w0) / 2;
+a0 = 1 + alpha;
+a1 = -2 * cos_w0;
+a2 = 1 - alpha;
+
+b0 /= a0; b1 /= a0; b2 /= a0;
+a1 /= a0; a2 /= a0;
+
+@sample
+// Left
+y0_l = b0 * spl0 + b1 * x1_l + b2 * x2_l - a1 * y1_l - a2 * y2_l;
+x2_l = x1_l; x1_l = spl0;
+y2_l = y1_l; y1_l = y0_l;
+spl0 = y0_l;
+
+// Right
+y0_r = b0 * spl1 + b1 * x1_r + b2 * x2_r - a1 * y1_r - a2 * y2_r;
+x2_r = x1_r; x1_r = spl1;
+y2_r = y1_r; y1_r = y0_r;
+spl1 = y0_r;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Frequency | 20–20000 Hz | 500 | Cutoff frequency. Frequencies below this are attenuated. |
+| Q | 0.1–4 | 0.707 | Resonance. 0.707 = Butterworth (no peak). >1 = resonant bump at cutoff. |
+
+## Use Case
+Remove low-frequency rumble, DC offset, or mud before other processing. Highpass before saturation prevents low frequencies from dominating the distortion. Essential for vocal chains and mastering.
+
+## Compatibility
+- **Before**: DC blocking (redundant — highpass already blocks DC)
+- **After**: Saturation, compression, EQ
+- **Requires**: Biquad state initialization
+- **Conflicts**: Cascading multiple highpass filters progressively attenuates the low end — be intentional about cutoff stacking
+
+## Source
+RBJ Audio EQ Cookbook. Transposed direct form II. JSFX built-in math. License: public domain.
+
+<!-- test: White noise input. Sweep freq from 20 to 20000 Hz. Output should show progressive attenuation below cutoff. Q=0.707 = -3dB at cutoff. -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesFiltersRbjLowpassRef = R"MD(# RBJ Lowpass (Filters)
+
+## Code
+```jsfx
+desc:RBJ Lowpass Filter
+
+slider1:1000<20,20000,1>Frequency (Hz)
+slider2:0.707<0.1,4,0.01>Q
+
+@init
+denorm = 1e-25;
+// Biquad state (transposed direct form II)
+b0 = b1 = b2 = a1 = a2 = 0;
+x1_l = x2_l = y1_l = y2_l = 0;
+x1_r = x2_r = y1_r = y2_r = 0;
+
+@slider
+// RBJ cookbook coefficients: lowpass
+w0 = 2 * $pi * slider1 / srate;
+alpha = sin(w0) / (2 * slider2);
+cos_w0 = cos(w0);
+
+b0 = (1 - cos_w0) / 2;
+b1 = 1 - cos_w0;
+b2 = (1 - cos_w0) / 2;
+a0 = 1 + alpha;
+a1 = -2 * cos_w0;
+a2 = 1 - alpha;
+
+// Normalize by a0
+b0 /= a0; b1 /= a0; b2 /= a0;
+a1 /= a0; a2 /= a0;
+
+@sample
+// Left channel
+y0_l = b0 * spl0 + b1 * x1_l + b2 * x2_l - a1 * y1_l - a2 * y2_l;
+x2_l = x1_l; x1_l = spl0;
+y2_l = y1_l; y1_l = y0_l;
+spl0 = y0_l;
+
+// Right channel
+y0_r = b0 * spl1 + b1 * x1_r + b2 * x2_r - a1 * y1_r - a2 * y2_r;
+x2_r = x1_r; x1_r = spl1;
+y2_r = y1_r; y1_r = y0_r;
+spl1 = y0_r;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Frequency | 20–20000 Hz | 1000 | Cutoff frequency. |
+| Q | 0.1–4 | 0.707 | Resonance. 0.707 = Butterworth (flat). >1 = resonant peak. |
+
+## Use Case
+General-purpose lowpass: remove high frequencies, tame harshness, shape tone before saturation. The RBJ biquad is the standard building block for EQ — use it before saturation to control which frequencies distort.
+
+## Compatibility
+- **Before**: DC blocking, gain staging
+- **After**: Any other primitive (saturation, delay, reverb)
+- **Requires**: Biquad state initialization in `@init`
+- **Conflicts**: Do NOT cascade multiple RBJ biquads without re-initializing state — use separate instances per band
+
+## Source
+Robert Bristow-Johnson's Audio EQ Cookbook (https://www.w3.org/TR/audio-eq-cookbook/). Transposed direct form II implementation. JSFX `$pi`, `sin()`, `cos()` are built-in. License: public domain (cookbook), MIT-compatible.
+
+<!-- test: White noise input. Q=0.707, sweep freq from 20000 to 20 Hz. Output should show progressive high-frequency roll-off. No clicks or instability. -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesSaturationAsymmetricTanhRef = R"MD(# Asymmetric Tanh (Saturation)
+
+## Code
+```jsfx
+desc:Asymmetric Tanh Saturation
+
+slider1:3<1,15,0.1>Drive
+slider2:0.05<0,0.5,0.01>Bias (DC Offset)
+slider3:0<-12,12,0.1>Output Gain (dB)
+
+@init
+denorm = 1e-25;
+
+@slider
+drive = slider1;
+bias = slider2;
+out_gain = 10^(slider3 / 20);
+
+@sample
+// Asymmetric tanh: bias shifts the saturation curve, introducing even harmonics.
+// Compensate for the DC offset introduced by the bias so the output stays centered.
+spl0 = tanh((spl0 + bias) * drive) - tanh(bias * drive);
+spl1 = tanh((spl1 + bias) * drive) - tanh(bias * drive);
+
+spl0 = spl0 * out_gain;
+spl1 = spl1 * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Drive | 1–15 | 3 | Input gain before tanh. |
+| Bias | 0–0.5 | 0.05 | DC offset for asymmetry. 0 = symmetric. Higher = more even harmonics. |
+| Output Gain | -12 to +12 dB | 0 | Post-saturation level. |
+
+## Use Case
+Tape emulation, transformer saturation, tube preamp coloration. The asymmetry adds even-order harmonics (musically "warm") that symmetric saturation lacks. Use the Bias slider to control how much "character" the saturation adds.
+
+## Compatibility
+- **Before**: EQ (boost the frequencies you want to saturate)
+- **After**: DC blocking (asymmetry can leave residual DC), EQ (shape the harmonics)
+- **Requires**: `denorm = 1e-25;` in `@init`
+- **Conflicts**: Cascading multiple asymmetric stages can accumulate DC — insert a DC block between stages
+
+## Source
+Standard asymmetric distortion technique. Documented in musicdsp.org's saturation archive. JSFX `tanh()` is built-in. License: public domain.
+
+<!-- test: Feed a 440 Hz sine at -12 dB. With bias=0.05, the positive half of the waveform should be more rounded than the negative half. Spectrum analyzer should show even harmonics (2nd, 4th) stronger than odd. -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesSaturationHardClipKneeRef = R"MD(# Hard Clip with Knee (Saturation)
+
+## Code
+```jsfx
+desc:Hard Clip with Knee
+
+slider1:0<-24,0,0.1>Threshold (dB)
+slider2:2<0.5,10,0.1>Knee Width (dB)
+slider3:0<-12,12,0.1>Output Gain (dB)
+
+@init
+denorm = 1e-25;
+
+@slider
+thresh = 10^(slider1 / 20);   // Convert dB to linear threshold
+knee_w = 10^(slider2 / 20);   // Knee width in linear (above threshold)
+out_gain = 10^(slider3 / 20);
+
+@sample
+// Piecewise hard clip with soft knee transition.
+// For |in| < thresh: pass through
+// For |in| between thresh and thresh + knee_w: quadratic blend
+// For |in| > thresh + knee_w: hard clip to thresh
+function clip(in, th, kw) (
+    abs_in = abs(in);
+    abs_in <= th ? in : (
+        abs_in >= th + kw ? sign(in) * th : (
+            // Quadratic knee: smooth transition from linear to hard clip.
+            local(x) = (abs_in - th) / kw; // 0 at thresh, 1 at thresh+knee
+            sign(in) * (th + kw * (x - x*x/2))
+        )
+    )
+);
+
+spl0 = clip(spl0, thresh, knee_w) * out_gain;
+spl1 = clip(spl1, thresh, knee_w) * out_gain;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Threshold | -24 to 0 dB | 0 | Level above which clipping begins. |
+| Knee Width | 0.5–10 dB | 2 | Width of the soft knee transition. Higher = smoother clip. |
+| Output Gain | -12 to +12 dB | 0 | Post-clip level. |
+
+## Use Case
+Guitar distortion, aggressive mastering clipper, brickwall limiting. The knee provides a smooth transition from clean to clipped, avoiding the harsh artifacts of a pure hard clip. Use with EQ before to shape which frequencies hit the threshold hardest.
+
+## Compatibility
+- **Before**: EQ (boost frequencies to push into clip), compression (control dynamics before clipping)
+- **After**: Low-pass filter (tame the harmonics), DC blocking
+- **Requires**: `denorm = 1e-25;` in `@init`
+- **Conflicts**: Cascading multiple hard clips progressively flattens the waveform — usually single-stage is best
+
+## Source
+Knee-based clipping is a standard mastering/limiter technique. The quadratic knee formula is from the DAFx soft-clipper literature. JSFX `abs()` and `sign()` are built-in. License: public domain.
+
+<!-- test: Feed a 440 Hz sine at -6 dB. With threshold=-12 dB and knee=3 dB, the waveform should show soft rounding at the peaks. With knee=0.5 dB, it should approach a hard square-ish clip. -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesSaturationTanhSoftClipRef = R"MD(# Tanh Soft Clip (Saturation)
+
+## Code
+```jsfx
+desc:Tanh Soft Clip
+
+slider1:2<1,10,0.1>Drive
+slider2:0<-12,12,0.1>Output Gain (dB)
+
+@init
+// Denormal prevention — always include this in any JSFX with floating-point DSP.
+denorm = 1e-25;
+
+@slider
+drive = slider1;
+out_gain = 10^(slider2 / 20);
+
+@sample
+// Apply tanh saturation with anti-denormal guard.
+spl0 = tanh(spl0 * drive) * out_gain;
+spl1 = tanh(spl1 * drive) * out_gain;
+
+// Prevent denormals from accumulating in silent sections.
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Drive | 1–10 | 2 | Input gain before tanh. Higher = more saturation. |
+| Output Gain | -12 to +12 dB | 0 | Post-saturation level. Compensate for drive attenuation. |
+
+## Use Case
+Warm tube/tape saturation, subtle mastering saturation, adding harmonics to clean signals. The tanh function is smooth and never hard-clips — it asymptotically approaches ±1. Best for signals that need "glue" without harsh distortion.
+
+## Compatibility
+- **Before**: DC blocking (if input has offset), EQ (to shape the tone before saturation)
+- **After**: DC blocking (tanh can introduce small DC offset at extreme drive), gain staging
+- **Requires**: `denorm = 1e-25;` in `@init` to prevent denormal stalls
+- **Conflicts**: None — composable with any other primitive
+
+## Source
+Standard DSP technique. `tanh()` is available in JSFX as a built-in function. Documented in the REAPER JSFX SDK (`/websites/reaper_fm_sdk_js` on context7). License: public domain.
+
+<!-- test: Feed a 440 Hz sine at -12 dB. With drive=2, output should show visible waveform rounding. With drive=1, output should be nearly transparent. Audio: "warm, slightly compressed tone" -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesUtilitiesDcBlockingRef = R"MD(# DC Blocking (Utilities)
+
+## Code
+```jsfx
+desc:DC Blocking Filter
+
+@init
+denorm = 1e-25;
+// One-pole highpass at ~5 Hz — removes DC without affecting audio.
+// Coefficient: a = exp(-2*pi*5/srate)
+a0 = exp(-2 * $pi * 5 / srate);
+x1_l = x1_r = y1_l = y1_r = 0;
+
+@sample
+// DC blocking filter: y[n] = x[n] - x[n-1] + a0 * y[n-1]
+// Left
+y0_l = spl0 - x1_l + a0 * y1_l;
+x1_l = spl0;
+y1_l = y0_l;
+spl0 = y0_l;
+
+// Right
+y0_r = spl1 - x1_r + a0 * y1_r;
+x1_r = spl1;
+y1_r = y0_r;
+spl1 = y0_r;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+No sliders. This is a fixed 5 Hz highpass filter that removes DC offset without audibly affecting the signal.
+
+## Use Case
+**Mandatory after any saturation primitive with drive > 2.0.** Saturation (especially asymmetric) can introduce small DC offsets. If left uncorrected, DC accumulates through subsequent processing stages, causing clicks, meter inaccuracy, and reduced headroom. Place DC blocking immediately after any nonlinear stage.
+
+## Compatibility
+- **Before**: Nothing needed — it's self-contained
+- **After**: Everything. DC blocking should be one of the first stages in any chain.
+- **Requires**: State variables in `@init`
+- **Conflicts**: None — completely transparent to audio
+
+## Source
+One-pole highpass DC blocker. Standard technique from Julius O. Smith's "Introduction to Digital Filters". License: public domain.
+
+<!-- test: Feed a signal with +0.5 DC offset. Output should center around zero. No audible change to audio content. -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesUtilitiesDenormalPreventionRef = R"MD(# Denormal Prevention (Utilities)
+
+## Code
+```jsfx
+desc:Denormal Prevention
+
+@init
+// The standard JSFX denormal prevention pattern.
+// Add this to the @init section of every JSFX that does floating-point DSP.
+// Without it, very quiet signals can cause the CPU to stall on denormal
+// floating-point operations, consuming 100% CPU.
+denorm = 1e-25;
+
+@sample
+// After all DSP processing in @sample, add this anti-denormal guard:
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+No sliders. This is a code pattern, not a standalone effect. Copy the `@init` and `@sample` lines into any JSFX.
+
+## Use Case
+**Include in EVERY JSFX.** Denormal numbers are extremely small floating-point values that occur when audio fades to silence and the FPU enters a slow microcode path. The `+= denorm; -= denorm` pattern adds and immediately removes an inaudible value, flushing the FPU pipeline back to normal speed. Without this, silent sections can spike CPU usage.
+
+## Compatibility
+- **Before**: Not applicable — this is infrastructure, not processing
+- **After**: Not applicable
+- **Requires**: `denorm = 1e-25;` in `@init`, and the `+=/-=` pattern in `@sample`
+- **Conflicts**: None — safe to include everywhere. If it's already present, adding it twice is harmless.
+
+## Source
+Documented in the REAPER JSFX SDK and community wiki. Standard pattern since JSFX inception. License: public domain.
+
+<!-- test: Not testable as a standalone effect. Verify that the CPU meter in REAPER stays low when the track is silent. -->
+)MD";
+
+inline constexpr const char* kJsfxPrimitivesUtilitiesStereoWidthRef = R"MD(# Stereo Width (Utilities)
+
+## Code
+```jsfx
+desc:Stereo Width Control
+
+slider1:100<0,200,1>Width (%)
+
+@init
+denorm = 1e-25;
+
+@slider
+// Width: 0% = mono, 100% = original, 200% = extra wide
+width = slider1 / 100;
+
+@sample
+// Mid/Side processing
+mid = (spl0 + spl1) * 0.5;     // Mid = mono sum
+side = (spl0 - spl1) * 0.5;    // Side = stereo difference
+
+// Adjust side level to control width
+side *= width;
+
+// Reconstruct L/R from M/S
+spl0 = mid + side;
+spl1 = mid - side;
+
+spl0 += denorm; spl0 -= denorm;
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Parameters
+| Slider | Range | Default | Description |
+|---|---|---|---|
+| Width | 0–200% | 100% | 0=mono, 100=original, 200=extra wide. |
+
+## Use Case
+Adjust stereo image width. Narrow a wide synth pad to sit in the mix. Widen a narrow guitar recording. Use before reverb to control how wide the reflection field spreads.
+
+## Compatibility
+- **Before**: Any processing
+- **After**: Any processing — transparent
+- **Requires**: Nothing special
+- **Conflicts**: Width > 100% can cause phase issues on mono playback — use with caution
+
+## Source
+Mid/Side (M/S) stereo processing. Standard technique in mastering and mixing. License: public domain.
+
+<!-- test: Stereo signal with L=+1, R=-1 (wide). Width=0% should give L=R=0 (mono sum cancels). Width=100% preserves. Width=200% exaggerates. -->
+)MD";
+
+inline constexpr const char* kJsfxRef = R"MD(# JSFX Reference (EEL2)
+
+> Complete syntax reference for REAPER's JSFX audio effect language.
+> Source: https://www.reaper.fm/sdk/js/js.php — curated for LLM grounding.
+
+## ⚠️ CRITICAL: Scientific notation
+
+JSFX uses C-style scientific notation for numeric literals:
+
+```
+1e-25    → 0.00000000000000000000000001  (NOT "1 times e minus 25")
+1e3      → 1000.0
+2.5e-4   → 0.00025
+```
+
+**The `e` in `1e-25` is part of the number literal, NOT the mathematical constant e.**
+Do NOT insert spaces, markers, comments, or any characters between the digits and `e`.
+`denorm = 1e-25;` is a single assignment. Write it EXACTLY as shown.
+**NEVER write `1 <!> e-25` or `1 * e^(-25)` or `1 * exp(-25)`.**
+
+## File format
+
+A `.jsfx` file is plain text. REAPER scans `<REAPER resource>/Effects/<dir>/*.jsfx`.
+
+```
+desc:Effect Name
+//tags: category keywords
+//author: Name
+slider1:0<0,100,1>Parameter Name (units)
+```
+
+## Block structure
+
+| Block | When | Purpose |
+|---|---|---|
+| `desc:` | once | **Required.** FX name in browser. |
+| `@init` | on load | Initialize state, buffers, defaults. |
+| `@slider` | on slider change | Read `sliderN` values, compute coefficients. |
+| `@block` | per audio buffer | Whole-buffer logic (envelopes, LFO phase). |
+| `@sample` | per audio sample | Per-sample DSP. **Most audio code lives here.** |
+| `@gfx` | on UI redraw | Custom UI drawing. |
+| `@serialize` | on save/load | Persist internal state. |
+
+## Sliders
+
+```
+slider1:5<0,10,1>Volume                    // int, 0-10, step 1
+slider2:0.5<0,1,0.01>Mix                   // float, 0-1, step 0.01
+slider3:1000<20,20000,1>:log>Frequency     // log scale
+slider4:0<0,2,1{Off,Peak,RMS}>Mode         // enum (dropdown)
+slider5:120<40,300,1>-Hidden BPM           // hidden from UI
+slider6:/path:default>File selector        // file picker
+```
+
+**Slider options:**
+- `:log>` — logarithmic response curve
+- `:log=X>` — log with midpoint X
+- `:sqr>` — quadratic response
+- `{A,B,C}` — enum dropdown (starts at 0)
+- `-Hidden` — hidden from UI but still automatable
+
+**Read sliders in `@slider` and `@sample`. In `@init`, sliders have their DEFAULT values.**
+
+## Built-in variables
+
+| Variable | Type | Meaning |
+|---|---|---|
+| `spl0`, `spl1`, ... `spl63` | float | Audio samples (L=0, R=1). Read input, write output. |
+| `spl(n)` | float | Access sample by index (slower than `splN`). |
+| `srate` | float | Sample rate in Hz (44100, 48000, etc.). |
+| `samplesblock` | int | Samples per audio block. |
+| `numchan` | int | Number of I/O channels (2 = stereo). |
+| `slider1`-`slider64` | varies | Current slider values. |
+| `t` | float | Current time in seconds. |
+| `tempo` | float | Current BPM. |
+| `play_state` | float | 0=stopped, 1=playing, 2=recording. |
+| `beat_position` | float | Current position in beats. |
+| `$pi` | float | π (3.14159...). |
+| `$e` | float | e (2.71828...). **Use this for Euler's number, NOT in scientific notation.** |
+
+## Math functions
+
+| Function | Description |
+|---|---|
+| `sin(x)`, `cos(x)`, `tan(x)` | Trigonometric (radians). |
+| `asin(x)`, `acos(x)`, `atan(x)` | Inverse trig. |
+| `atan2(y, x)` | 2-argument arctangent. |
+| `tanh(x)` | Hyperbolic tangent. **Key for saturation.** |
+| `exp(x)` | e^x (Euler's number to power x). |
+| `log(x)` | Natural log (base e). |
+| `log10(x)` | Base-10 log. |
+| `sqrt(x)` | Square root. |
+| `sqr(x)` | x² (square). |
+| `abs(x)` | Absolute value. |
+| `sign(x)` | Sign: -1, 0, or 1. |
+| `min(x,y)` | Minimum. |
+| `max(x,y)` | Maximum. |
+| `floor(x)` | Round down. |
+| `ceil(x)` | Round up. |
+| `pow(x,y)` | x^y. |
+| `invsqrt(x)` | Fast 1/√x approximation. |
+| `rand(x)` | Random 0 to x. |
+
+## Memory functions
+
+| Function | Description |
+|---|---|
+| `memset(offset, value, length)` | Fill memory. |
+| `memcpy(dest, src, length)` | Copy memory. |
+| `strcpy(dest, src)` | Copy string. |
+| `strlen(str)` | String length. |
+| `strcmp(a, b)` | Compare strings. |
+| `sprintf(dest, fmt, ...)` | Format string. |
+
+## User-defined functions
+
+```
+function mySine(x)
+(
+  x - (x^3)/(3*2) + (x^5)/(5*4*3*2);
+);
+
+// Call:
+y = mySine($pi * 18000 / srate);
+```
+
+- Functions can have up to 40 parameters
+- Parameters are private (don't affect globals)
+- Functions CANNOT be recursive
+- Functions defined in `@init` are accessible from all sections
+
+## Control flow
+
+```
+// Ternary
+y = condition ? value_if_true : value_if_false;
+
+// If/else
+condition ? (
+  // true block
+) : (
+  // false block
+);
+
+// While loop
+i = 0;
+while (i < 10) (
+  buffer[i] = sin(i * 0.1);
+  i += 1;
+);
+
+// Counted loop
+loop(100,
+  sum += rand(1);
+);
+```
+
+## FFT / spectral
+
+| Function | Description |
+|---|---|
+| `fft(buffer, size)` | Forward FFT (in-place). |
+| `ifft(buffer, size)` | Inverse FFT (in-place). |
+| `fft_permute(buffer, size)` | Reorder bins to natural order. |
+| `fft_ipermute(buffer, size)` | Inverse permute. |
+| `convolve(dest, src, size)` | FFT convolution. |
+| `pdhalf(len, dir)` | Phase dispersion half. |
+
+## Graphics (@gfx)
+
+| Variable | Meaning |
+|---|---|
+| `gfx_w`, `gfx_h` | Window width/height. |
+| `gfx_x`, `gfx_y` | Current draw position. |
+| `gfx_r`, `gfx_g`, `gfx_b`, `gfx_a` | Draw color (0-1). |
+| `gfx_clear` | Background color (RGB packed, or -1 for no clear). |
+| `gfx_texth` | Text line height (read-only). |
+
+| Function | Description |
+|---|---|
+| `gfx_setfont(index, "name", size)` | Set font. |
+| `gfx_drawstr("text")` | Draw string at gfx_x, gfx_y. |
+| `gfx_drawnumber(n, dec)` | Draw number. |
+| `gfx_rect(x, y, w, h)` | Fill rectangle. |
+| `gfx_line(x1, y1, x2, y2)` | Draw line. |
+| `gfx_circle(x, y, r, fill)` | Draw circle. |
+| `gfx_blit(image, scale, x, y)` | Blit image. |
+| `gfx_showmenu("item1|item2|item3")` | Popup menu, returns index. |
+
+## MIDI (in @block)
+
+| Variable | Meaning |
+|---|---|
+| `midirecv(offset, msg1, msg2, msg3)` | Receive MIDI event. |
+| `midisend(offset, msg1, msg2, msg3)` | Send MIDI event. |
+
+MIDI message types: `0x90` = note on, `0x80` = note off, `0xB0` = CC, `0xE0` = pitch bend.
+
+## Denormal prevention (MANDATORY in every JSFX)
+
+```jsfx
+@init
+denorm = 1e-25;    // Scientific notation: 0.00000000000000000000000001
+                    // Do NOT write "1 <!> e-25" or "1 * e^(-25)"
+                    // "1e-25" is a SINGLE numeric literal
+
+@sample
+// ... your DSP code ...
+spl0 += denorm; spl0 -= denorm;   // flush denormals
+spl1 += denorm; spl1 -= denorm;
+```
+
+## Common DSP idioms
+
+### Soft saturation (tanh)
+```jsfx
+@sample
+spl0 = tanh(spl0 * drive);
+spl1 = tanh(spl1 * drive);
+```
+
+### One-pole lowpass
+```jsfx
 @init
 lp_l = lp_r = 0;
+@slider
+a = exp(-2*$pi*slider1/srate);
 @sample
-cut = slider1;
-a = exp(-2*$pi*cut/srate);
 lp_l = spl0 * (1-a) + lp_l * a;
 lp_r = spl1 * (1-a) + lp_r * a;
+spl0 = lp_l; spl1 = lp_r;
 ```
 
-### Time-based delay
-```
+### Delay line
+```jsfx
 @init
-delay_samples = srate * 0.25;  // 250ms
-buffer_idx = 0;
+buf_len = srate * 2;  // 2 seconds
+wpos = 0;
 @sample
-buf_l[buffer_idx] = spl0;
-buf_r[buffer_idx] = spl1;
-delayed_l = buf_l[(buffer_idx - delay_samples) | 0];
-buffer_idx = (buffer_idx + 1) % delay_samples;
-spl0 = spl0 + delayed_l * 0.5;
+rpos = (wpos - delay_samples + buf_len) % buf_len;
+out = buf_l[rpos];
+buf_l[wpos] = spl0;
+wpos = (wpos + 1) % buf_len;
+spl0 = spl0 * (1-mix) + out * mix;
 ```
-
-## Debugging tips
-
-- Use `slider_show`/`slider_showhide` to surface internal state.
-- `convolve` works with FFT convolution; `pdhalf` is `pi/2`; `$pi` is `pi`.
-- Compile errors appear in REAPER's Effects → "Show development messages" or the FX error log.
-- If a slider doesn't update, check the slider syntax — typos here are the #1 source of bugs.
 
 ## Common pitfalls
 
 1. **Forgetting `desc:`** — REAPER won't show the FX.
-2. **Forgetting `@init`** — `buf_l[]` allocation crashes if read first.
-3. **Slider values inside `@sample`** are valid; sliders values inside `@init` are NOT (they're the defaults).
-4. **Block-vs-sample confusion** — `spl0 = ...` in `@block` is applied once; in `@sample` it's per sample.
+2. **Forgetting `@init`** — buffer access crashes if not initialized.
+3. **Slider values in `@init`** — they're DEFAULTS, not current values. Read in `@slider`.
+4. **Scientific notation** — `1e-25` is ONE token. NOT `1 * e^(-25)`.
+5. **`$pi` vs `pi`** — use `$pi` (the built-in constant), not `pi` (undefined variable).
+6. **`$e` vs `e`** — use `$e` for Euler's number. `e` alone is undefined.
+7. **Denormals** — always include `denorm = 1e-25;` and the `+=/-=` pattern.
 
 ## ReaForge-specific notes
 
 - Save to `Effects/ReaForge/<name>.jsfx`.
 - The agent generates the FULL file (header + all blocks). Don't truncate.
-- The user must restart REAPER (or click FX Browser → "Scan for new plug-ins") to see new JSFX.
+- The user must click FX Browser → "Scan for new plug-ins" to see new JSFX.
+- For complex syntax questions, query context7: `/websites/reaper_fm_sdk_js`.
 )MD";
 
 inline constexpr const char* kReascriptLuaRef = R"MD(# ReaScript Lua Cheatsheet
@@ -255,115 +3200,48 @@ The empty string trick tells REAPER "tell me how big"; the second call writes in
 - The agent does NOT need to call `reaper.defer()` — the script runs in REAPER's main thread.
 )MD";
 
-inline constexpr const char* kFxChainFormatRef = R"MD(# FX Chain (RfxChain) Format
-
-> Minimum vocabulary to write a valid REAPER FX Chain (`.RfxChain`) file. RfxChain files are loaded via Track → FX → "Load chain" or as inserts in a track template.
-
-## File format
-
-Plain XML, with a `<FXCHAIN>` root. Saved as `<REAPER resource>/FXChains/ReaForge/<name>.RfxChain` (the ReaForge convention).
-
-## Minimal template
-
-```xml
-<FXCHAIN
-  WNDRECT="0 0 0 0"
-  SHOW="0"
-  LASTSEL="0"
-  DOCKED="0"
->
-<FX id="0" src="VST:ReaEQ (Cockos)" UINPUT="0">
-  <NAME>ReaEQ</NAME>
-  <PRESET>
-    <plain>
-    </plain>
-  </PRESET>
-  <PARAMBEGINS>
-    <P name="B1 On" vt="0"/>
-    <P name="B2 On" vt="0"/>
-  </PARAMBEGINS>
-</FX>
-<FX id="1" src="VST:ReaDelay (Cockos)" UINPUT="0">
-  <NAME>ReaDelay</NAME>
-  <PARAMBEGINS>
-    <P name="Wet" vt="0.5"/>
-  </PARAMBEGINS>
-</FX>
-</FXCHAIN>
-```
-
-## Tag reference
-
-| Tag | Where | Meaning |
-|---|---|---|
-| `<FXCHAIN>` | root | The chain itself. Attributes: `WNDRECT` (window position), `SHOW` (0/1), `LASTSEL`, `DOCKED`. |
-| `<FX id="N" src="..." UINPUT="0">` | child of FXCHAIN | One effect. `id` is position in chain (0-indexed). `src` is the plugin identifier. |
-| `<NAME>` | child of FX | Display name (must match plugin). |
-| `<PRESET>` | child of FX | Optional preset block. `<plain>` means no preset. |
-| `<PARAMBEGINS>` | child of FX | One `<P name="ParamName" vt="Value"/>` per param. Values are strings. |
-
-## Plugin `src` formats
-
-| Format | Example | Notes |
-|---|---|---|
-| `VST:Name` | `VST:ReaEQ (Cockos)` | VST2 plugins. |
-| `VST3:Name` | `VST3:ReaEQ (Cockos)` | VST3 plugins. |
-| `JS:Name` | `JS:ReaDelay` | Built-in JS effects. |
-| `AU:Name` | `AU:AppleAUNames` | macOS only. |
-| `CLAP:Name` | `CLAP:Plugin Name` | CLAP plugins. |
-| `DX:Name` | `DX:DirectXPlugin` | Windows only. |
-
-The string after the colon is the **plugin display name as REAPER sees it** — case-sensitive. Mismatches cause the chain to load with the missing FX shown as "?".
-
-## Common built-in FX identifiers
-
-These are the safe-to-use ones that ship with REAPER:
-
-- `VST:ReaEQ (Cockos)`
-- `VST:ReaDelay (Cockos)`
-- `VST:ReaComp (Cockos)`
-- `VST:ReaGate (Cockos)`
-- `VST:ReaPitch (Cockos)`
-- `VST:ReaVerb (Cockos)`
-- `VST:ReaXcomp (Cockos)`
-- `VST:ReaSynth (Cockos)`
-- `VST:ReaSamplomatic (Cockos)`
-- `VST:ReaVoice (Cockos)`
-- `JS:Volume` / `JS:Pan`
-- `JS:Gain` (utility)
-
-For third-party plugins, use whatever REAPER shows in the FX browser.
-
-## Parameter name rules
-
-`<P name="..."/>` names are the **display labels** of the parameters, not internal IDs. They must match exactly. Common param names on built-in plugins:
-
-- ReaEQ: `B1 On`, `B1 Type`, `B1 Freq`, `B1 Gain`, `B1 Q`, `B1 Bandwidth`
-- ReaDelay: `Wet`, `Time`, `Length ms`, `Feedback`
-- ReaComp: `Threshold`, `Ratio`, `Attack`, `Release`, `Makeup`
-
-The numeric value of `vt` is **always a string** (use the format you'd see in the UI). For a -6 dB threshold: `<P name="Threshold" vt="-6"/>`.
-
-## Bypassing an FX
-
-Set `BYPASS="1"` on the `<FX>` tag.
-
-## ReaForge-specific notes
-
-- Save to `FXChains/ReaForge/<name>.RfxChain`.
-- The file must be valid XML; an unclosed tag breaks the whole chain on load.
-- The order of `<FX>` elements is the chain order — first one is top of chain.
-- Adding a new chain does NOT require a REAPER rescan (unlike JSFX); the chain appears in the "FX: Load chain" menu immediately.
-- For vocal slap chains, a common pattern is: ReaEQ (high-pass at 100Hz, gentle boost at 3kHz) → ReaDelay (200ms, 25% feedback, 30% wet).
-)MD";
-
 
 // Lookup table for `get_api_reference(target)`. Built once on first call.
 inline const std::unordered_map<std::string, std::string>& api_reference_map() {
     static const std::unordered_map<std::string, std::string> m = {
-        {"jsfx",            kJsxRef},
-        {"reascript_lua",            kReascriptLuaRef},
+        {"00-index",            k00IndexRef},
+        {"fx_chain-primitives/chain-builder-template",            kFxChainPrimitivesChainBuilderTemplateRef},
+        {"fx_chain-primitives/recipes/vocal-slap",            kFxChainPrimitivesRecipesVocalSlapRef},
         {"fx_chain_format",            kFxChainFormatRef},
+        {"jsfx-algorithms/dynamics/lookahead-limiter",            kJsfxAlgorithmsDynamicsLookaheadLimiterRef},
+        {"jsfx-algorithms/dynamics/rms-compressor",            kJsfxAlgorithmsDynamicsRmsCompressorRef},
+        {"jsfx-algorithms/filters/moog-ladder",            kJsfxAlgorithmsFiltersMoogLadderRef},
+        {"jsfx-algorithms/filters/svf-chamberlin",            kJsfxAlgorithmsFiltersSvfChamberlinRef},
+        {"jsfx-algorithms/modulation/bitcrusher",            kJsfxAlgorithmsModulationBitcrusherRef},
+        {"jsfx-algorithms/modulation/chorus-flanger",            kJsfxAlgorithmsModulationChorusFlangerRef},
+        {"jsfx-algorithms/modulation/ring-modulator",            kJsfxAlgorithmsModulationRingModulatorRef},
+        {"jsfx-algorithms/pitch/psola-pitch-shift",            kJsfxAlgorithmsPitchPsolaPitchShiftRef},
+        {"jsfx-algorithms/reverb/convolution-reverb",            kJsfxAlgorithmsReverbConvolutionReverbRef},
+        {"jsfx-algorithms/reverb/fdn-reverb",            kJsfxAlgorithmsReverbFdnReverbRef},
+        {"jsfx-algorithms/synthesis/fm-synthesis",            kJsfxAlgorithmsSynthesisFmSynthesisRef},
+        {"jsfx-algorithms/synthesis/karplus-strong",            kJsfxAlgorithmsSynthesisKarplusStrongRef},
+        {"jsfx-algorithms/synthesis/wavetable-oscillator",            kJsfxAlgorithmsSynthesisWavetableOscillatorRef},
+        {"jsfx-algorithms/tape/wow-flutter",            kJsfxAlgorithmsTapeWowFlutterRef},
+        {"jsfx-design-patterns/00-manifesto",            kJsfxDesignPatterns00ManifestoRef},
+        {"jsfx-design-patterns/01-parameter-design",            kJsfxDesignPatterns01ParameterDesignRef},
+        {"jsfx-design-patterns/02-signal-flow",            kJsfxDesignPatterns02SignalFlowRef},
+        {"jsfx-design-patterns/03-ui-conventions",            kJsfxDesignPatterns03UiConventionsRef},
+        {"jsfx-design-patterns/04-gain-staging",            kJsfxDesignPatterns04GainStagingRef},
+        {"jsfx-design-patterns/05-anti-patterns",            kJsfxDesignPatterns05AntiPatternsRef},
+        {"jsfx-primitives/delays/feedback-delay",            kJsfxPrimitivesDelaysFeedbackDelayRef},
+        {"jsfx-primitives/delays/modulated-delay",            kJsfxPrimitivesDelaysModulatedDelayRef},
+        {"jsfx-primitives/delays/ping-pong-delay",            kJsfxPrimitivesDelaysPingPongDelayRef},
+        {"jsfx-primitives/filters/one-pole-lowpass",            kJsfxPrimitivesFiltersOnePoleLowpassRef},
+        {"jsfx-primitives/filters/rbj-highpass",            kJsfxPrimitivesFiltersRbjHighpassRef},
+        {"jsfx-primitives/filters/rbj-lowpass",            kJsfxPrimitivesFiltersRbjLowpassRef},
+        {"jsfx-primitives/saturation/asymmetric-tanh",            kJsfxPrimitivesSaturationAsymmetricTanhRef},
+        {"jsfx-primitives/saturation/hard-clip-knee",            kJsfxPrimitivesSaturationHardClipKneeRef},
+        {"jsfx-primitives/saturation/tanh-soft-clip",            kJsfxPrimitivesSaturationTanhSoftClipRef},
+        {"jsfx-primitives/utilities/dc-blocking",            kJsfxPrimitivesUtilitiesDcBlockingRef},
+        {"jsfx-primitives/utilities/denormal-prevention",            kJsfxPrimitivesUtilitiesDenormalPreventionRef},
+        {"jsfx-primitives/utilities/stereo-width",            kJsfxPrimitivesUtilitiesStereoWidthRef},
+        {"jsfx",            kJsfxRef},
+        {"reascript_lua",            kReascriptLuaRef},
     };
     return m;
 }
